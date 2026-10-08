@@ -41,6 +41,20 @@ export function preyImprint(shape:PreyShape,x:number,z:number){
   if(upper<lower)return 0;
   return .7*Math.max(0,Math.min(1,(upper+.011)/.022));
 }
+/** Conservative rounded convex clearance; the outward normal drives contact. */
+export function preyClearance(shape:PreyShape,x:number,y:number,z:number,normal:THREE.Vector3){
+  if(shape==='sphere'){
+    const length=Math.hypot(x,y,z);normal.set(x,y,z).divideScalar(length||1);if(length<1e-8)normal.set(0,1,0);
+    return length-.011;
+  }
+  let distance=-Infinity;
+  for(const plane of planes(shape)){
+    const d=plane.normal.x*x+plane.normal.y*y+plane.normal.z*z+plane.constant;
+    if(d>distance){distance=d;normal.copy(plane.normal);}
+  }
+  return distance;
+}
+
 function wrappedGeometry(shape:PreyShape){
   const geometry=preyGeometry(shape);
   geometry.setAttribute('skinColor',new THREE.BufferAttribute(tissueColors(geometry.getAttribute('position').array),3));

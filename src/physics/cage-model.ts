@@ -2,6 +2,7 @@ import { BufferAttribute, BufferGeometry, DynamicDrawUsage } from 'three/webgpu'
 
 export interface ModelManifest {
   sourceHash:string;
+  limbCount?:number;
   volume:number;
   layout:Record<string,{offset:number;length:number;type:string}>;
 }
@@ -29,6 +30,7 @@ export function parseCage(buffer:ArrayBuffer,manifest:ModelManifest) {
   opticalGeometry.setAttribute('opticalThickness',new BufferAttribute(new Float32Array(opticalPositions.length/3).fill(.04),1));
   opticalGeometry.setIndex(new BufferAttribute(u32('opticalIndices'),1));opticalGeometry.computeBoundingBox();
   return {
+    limbCount:manifest.limbCount??6,
     pos:f64('particles'),tets,volumes:f64('volumes'),totalVolume:manifest.volume,
     contactBindings:Array.from(u32('contacts'),id=>stencils[id]),
     surface:{geometry,positions,indices,stencils,bindingIds,bindingWeights,restNormals:normals,tetIds:u32('tetIds')},

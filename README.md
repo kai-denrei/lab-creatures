@@ -6,7 +6,7 @@ An interactive WebGPU creature lab: sensory locomotion, predatory movement, feed
 
 - `/` — creature studies and project credits.
 - `/?specimen=nih-dairia` — the reference six-limbed creature, motion controls and prey experiments.
-- `/?specimen=creature-lab` — a separate workspace for future related species, with independent tuning.
+- `/?specimen=creature-lab` — four related body plans with independent tuning.
 - `/?specimen=jelly-baby` — the preserved original playground.
 
 Interactive scenes require a WebGPU-capable browser. The landing page loads without a GPU. Each scene loads independently.
@@ -285,7 +285,12 @@ Tentacle reach targets stay within separate radial sectors and outside the torso
 
 Probe controls now act on the pair of sensory arms: stretch raises their forward reach and muscle authority; spread widens their divergent sweeping directions. Extension and sweeping taper from full exploration at 225 mm to minimal reach at 45 mm from prey. During search, horizontal muscle forces balance so the arms extend before the torso follows in the pull phase. `npm run test:probes` measures both physical tips at zero/max stretch and spread and near/far prey distances.
 
-`/?specimen=creature-lab` opens a separate Creature Lab tab, currently seeded with the six-limbed Nih-Dairia ancestor. It shares the simulation and feeding features, but stores motion tuning independently (`creature-lab-motion-v1`), initially copied from the reference specimen. Shared settings links retain the chosen tab. Future descendants can vary anatomy in this workspace; no extra species or anatomical variants are claimed yet.
+`/?specimen=creature-lab` opens a separate Creature Lab tab, currently seeded with the six-limbed Nih-Dairia ancestor. It shares the simulation and feeding features, but stores motion tuning independently (`creature-lab-motion-v1`), initially copied from the reference specimen. Shared settings links retain the chosen tab. The variant selector includes the ancestor, Brood, Reed and Crown.
 
 
 Reach duration extends to **10×**. **Reach sweep** (0–5×, default 1×) independently controls the two leading arms’ side-to-side ground-search arcs. At zero, their directions stay steady relative to prey. Enabling sweep brings the arms to full extension earlier in the reach phase, leaving time to explore before the torso pulls forward. The arcs have offset timing and slowly varying phases, remain on opposite sides of the target, and diminish near prey. Existing saved/exported settings gain the new default without losing other tuning.
+
+
+Creature Lab now offers four independently generated body plans via its **Body variant** selector: Nih-Dairia (six limbs), Brood (six limbs, larger/thicker abdomen), Reed (four limbs, smaller/thinner abdomen), and Crown (eight limbs). Selecting one loads its own surface and tetrahedral cage, rather than scaling the rendered mesh. Gait, sensory-arm selection, traction and limb separation adapt to the limb count. Motion settings are saved per variant and shared links preserve the choice. Code downloads include all four models and launch the selected variant. Regenerate relatives with `npm run build:variants`; check anatomy, locomotion and feeding with `npm run test:variants`.
+
+A **cradling** phase precedes covering. Two front arms approach opposite prey flanks with 180 ms stagger and leave their tips separated; the rear legs brace. A conservative expanded convex prey proxy applies contact impulses through sampled visible-skin barycentric bindings, not just cage centerlines. Both arms must be near prey and the sampled membrane must clear it for 120 ms before covering proceeds. This is bounded sampled contact, not a guarantee against every triangle-level intersection. Cradling and the existing feeding lifecycle apply to all variants.

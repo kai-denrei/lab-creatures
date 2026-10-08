@@ -5,11 +5,14 @@ import { buildCage } from './model-cage.mjs';
 
 // Elevated body, raised knees and descending distal legs. Height follows actual
 // radius, so the membrane between the roots stays aloft instead of forming a skirt.
+const model=process.argv[2]??'nih-dairia';
+const profiles={'nih-dairia':{limbs:6,abdomen:.021,thickness:.0065},brood:{limbs:6,abdomen:.031,thickness:.010},reed:{limbs:4,abdomen:.015,thickness:.005},crown:{limbs:8,abdomen:.023,thickness:.0055}};
+const profile=profiles[model];if(!profile)throw new Error('Unknown creature profile');
 const angles=192,rings=24,positions=[],indices=[];
-const radius=a=>.021+.067*Math.pow((1+Math.cos(a*6))/2,4);
+const radius=a=>profile.abdomen+(.088-profile.abdomen)*Math.pow((1+Math.cos(a*profile.limbs))/2,4);
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 const height=r=>r<.046?.044+.012*smooth(r/.046):.056-.054*smooth((r-.046)/.042);
-const thickness=r=>.0065*Math.sqrt(Math.max(0,1-r*r));
+const thickness=r=>profile.thickness*Math.sqrt(Math.max(0,1-r*r));
 for(const side of [1,-1])for(let r=0;r<=rings;r++)for(let a=0;a<angles;a++) {
   const rho=Math.max(.0001,r/rings),angle=a/angles*Math.PI*2;
   const reach=radius(angle)*rho;
@@ -44,6 +47,6 @@ Object.assign(arrays,{opticalPositions:arrays.positions,opticalNormals:arrays.no
   thicknessIds:new Uint32Array(welded.length),thicknessWeights:new Float32Array(welded.length)});
 const chunks=[],layout={};let offset=0;
 for(const [name,array] of Object.entries(arrays)){const padding=(8-offset%8)%8;if(padding){chunks.push(Buffer.alloc(padding));offset+=padding;}layout[name]={offset,length:array.length,type:array.constructor.name};chunks.push(Buffer.from(array.buffer,array.byteOffset,array.byteLength));offset+=array.byteLength;}
-writeFileSync('src/assets/model/nih-dairia.bin',Buffer.concat(chunks));
-writeFileSync('src/assets/model/nih-dairia.json',JSON.stringify({sourceHash:'nih-dairia-spider-v2',volume,layout},null,2));
+writeFileSync(`src/assets/model/${model}.bin`,Buffer.concat(chunks));
+writeFileSync(`src/assets/model/${model}.json`,JSON.stringify({sourceHash:`${model}-spider-v3`,limbCount:profile.limbs,volume,layout},null,2));
 console.log({vertices:welded.length/3,triangles:triangles.length/3,volume});

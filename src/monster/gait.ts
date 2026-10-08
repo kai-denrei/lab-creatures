@@ -7,21 +7,28 @@ const smooth=(v:number)=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
 /** A traveling footfall sequence continues after the body's short pull impulse.
  * Each foot lifts first, advances while clear of the floor, then plants. */
 export class SpiderGait {
-  readonly feet=Array.from({length:6},()=>new Vector3());
-  readonly velocities=Array.from({length:6},()=>new Vector3());
-  readonly planted=Array.from({length:6},()=>true);
-  private starts=Array.from({length:6},()=>new Vector3());
-  private goals=Array.from({length:6},()=>new Vector3());
-  private elapsed=new Float64Array(6).fill(-1);
-  private durations=new Float64Array(6);
-  private heights=new Float64Array(6);
+  readonly feet:Vector3[];
+  readonly velocities:Vector3[];
+  readonly planted:boolean[];
+  private starts:Vector3[];
+  private goals:Vector3[];
+  private elapsed:Float64Array;
+  private durations:Float64Array;
+  private heights:Float64Array;
+  readonly count:number;
+  readonly spacing:number;
   private pending:number[]=[];
   private cooldown=0;
   private steps=0;
   readonly settings:MotionSettings;
-  constructor(settings:MotionSettings={...DEFAULT_MOTION}){this.settings=settings;this.reset();}
+  constructor(settings:MotionSettings={...DEFAULT_MOTION},count=6){
+    this.count=count;this.spacing=2*Math.PI/count;this.settings=settings;
+    this.feet=Array.from({length:count},()=>new Vector3());this.velocities=this.feet.map(()=>new Vector3());
+    this.starts=this.feet.map(()=>new Vector3());this.goals=this.feet.map(()=>new Vector3());this.planted=this.feet.map(()=>true);
+    this.elapsed=new Float64Array(count);this.durations=new Float64Array(count);this.heights=new Float64Array(count);this.reset();
+  }
   reset(){
-    this.feet.forEach((foot,i)=>foot.set(Math.cos(i*Math.PI/3)*.088,0,Math.sin(i*Math.PI/3)*.088));
+    this.feet.forEach((foot,i)=>foot.set(Math.cos(i*this.spacing)*.088,0,Math.sin(i*this.spacing)*.088));
     this.velocities.forEach(v=>v.set(0,0,0));this.planted.fill(true);
     this.elapsed.fill(-1);this.pending=[];this.cooldown=0;this.steps=0;
   }
@@ -33,9 +40,11 @@ export class SpiderGait {
     this.cooldown-=h;
     const airborne=this.planted.filter(p=>!p).length;
     if(!this.pending.length&&airborne===0&&walking&&this.cooldown<=0){
-      const lead=reservedLeg>=0?reservedLeg:(Math.round(Math.atan2(direction.z,direction.x)/(Math.PI/3))+6)%6;
+      const lead=reservedLeg>=0?reservedLeg:(Math.round(Math.atan2(direction.z,direction.x)/this.spacing)+this.count)%this.count;
       // Left/right pairs are offset in time, progressing from front to rear.
-      this.pending=[1,5,2,4,3,0].map(offset=>(lead+offset)%6).filter(i=>i!==reservedLeg&&i!==secondReservedLeg);
+      const order:number[]=[];
+      for(let k=1;k<=this.count/2;k++){order.push(k);if(this.count-k!==k)order.push(this.count-k);}order.push(0);
+      this.pending=order.map(offset=>(lead+offset)%this.count).filter(i=>i!==reservedLeg&&i!==secondReservedLeg);
     }
     this.pending=this.pending.filter(i=>i!==reservedLeg&&i!==secondReservedLeg);
     // With two exploratory arms lifted, only one supporting leg steps at a time.
@@ -47,10 +56,10 @@ export class SpiderGait {
       this.durations[i]=(.18+.025*(.5+.5*Math.sin(++this.steps*2.4)*Math.min(1,s.erratic)))*s.stepDuration/.19;
       this.heights[i]=s.stepHeight;
       const stride=s.stride+.003*Math.sin(this.steps*1.7+i*.8)*s.erratic;
-      this.goals[i].set(center.x+Math.cos(i*Math.PI/3)*.088+direction.x*stride,0,center.z+Math.sin(i*Math.PI/3)*.088+direction.z*stride);
+      this.goals[i].set(center.x+Math.cos(i*this.spacing)*.088+direction.x*stride,0,center.z+Math.sin(i*this.spacing)*.088+direction.z*stride);
       this.cooldown=s.stepSpacing;
     }
-    for(let i=0;i<6;i++){
+    for(let i=0;i<this.count;i++){
       const foot=this.feet[i],velocity=this.velocities[i];velocity.copy(foot);
       if(this.elapsed[i]>=0){
         this.elapsed[i]+=h;

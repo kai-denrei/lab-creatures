@@ -13,8 +13,8 @@ const feeding=new FeedingCycle(),target=new Vector3(.02,.012,0),center=new Vecto
 for(let i=0;i<120;i++)feeding.step(PHYS.step,target,center,false);
 assert.equal(feeding.phase,'hunting','held prey and inactive creatures cannot start feeding');
 for(let i=0;i<30;i++)feeding.step(PHYS.step,target,center,true);
-assert.equal(feeding.phase,'covering');
-for(let i=0;i<240;i++)feeding.step(PHYS.step,target,center,true,false);
+assert.equal(feeding.phase,'cradling');
+for(let i=0;i<400;i++)feeding.step(PHYS.step,target,center,true,false);
 assert.equal(feeding.phase,'covering','the creature cannot lower itself while off-center');
 assert.equal(feeding.drop,0);
 center.x=target.x;
@@ -24,11 +24,18 @@ assert.equal(feeding.scale,1,'a ball is not shrunk away while the body is still 
 feeding.reset(target);assert(!feeding.locked&&feeding.scale===1&&feeding.meals===0,'reset clears capture and restores prey');
 const wobble=new FeedingCycle(),wobbleCenter=new Vector3(0,.03,0),wobbleTarget=new Vector3(0,.012,0);
 for(let i=0;i<30;i++)wobble.step(PHYS.step,wobbleTarget,wobbleCenter,true);
+for(let i=0;i<340;i++)wobble.step(PHYS.step,wobbleTarget,wobbleCenter,true);
 for(let i=0;i<240&&wobble.phase==='covering';i++){
   wobbleCenter.x=i%6<4?.005:.009;
   wobble.step(PHYS.step,wobbleTarget,wobbleCenter,true,false);
 }
 assert.equal(wobble.phase,'dropping','small elastic oscillations do not endlessly restart covering');
+
+const blockedWrap=new FeedingCycle(),wrappedTarget=new Vector3(.04,.012,0),wrappedCenter=new Vector3(0,.03,0);
+for(let i=0;i<600;i++)blockedWrap.step(PHYS.step,wrappedTarget,wrappedCenter,true,true,false);
+assert.equal(blockedWrap.phase,'cradling','unsafe membrane contact cannot time out into covering');
+for(let i=0;i<40;i++)blockedWrap.step(PHYS.step,wrappedTarget,wrappedCenter,true,true,true);
+assert.equal(blockedWrap.phase,'covering','clearance dwell releases the cradle');
 
 const bytes=readFileSync('src/assets/model/nih-dairia.bin');
 const body=new SoftBody(parseCage(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),JSON.parse(readFileSync('src/assets/model/nih-dairia.json','utf8'))));
@@ -52,7 +59,7 @@ for(let i=0;i<2400;i++){
   tick();phases.add(rig.feeding.phase);
   assert(rig.feeding.scale>=0&&rig.feeding.scale<=1);
   if(lastPhase==='covering'&&rig.feeding.phase==='dropping')assert(Math.hypot(rig.torsoCenter.x-original.x,rig.torsoCenter.z-original.z)<.010,'torso gets on top before descending');
-  if(['covering','dropping','absorbing','recovering'].includes(rig.feeding.phase)){
+  if(['cradling','covering','dropping','absorbing','recovering'].includes(rig.feeding.phase)){
     assert(rig.target.distanceTo(original)<1e-9,'captured target remains fixed');
     assert(rig.feeding.preyPosition.distanceTo(original)<1e-9,'prey is never sucked toward or into the creature');
   }
@@ -73,7 +80,7 @@ assert(imprinted>.004,'a visible round imprint protrudes above the surrounding s
 assert(imprinted-resolved>.004,'the bulge resolves before standing back up');
 assert.equal(smallest,0,'the prey completely disappears');
 assert.equal(rig.feeding.meals,1,'one capture produces exactly one meal');
-assert(['covering','dropping','absorbing','recovering','spawning','hunting'].every(phase=>phases.has(phase)));
+assert(['cradling','covering','dropping','absorbing','recovering','spawning','hunting'].every(phase=>phases.has(phase)));
 assert(rig.target.distanceTo(original)>.2,'new prey spawns elsewhere');
 assert(Math.hypot(rig.target.x,rig.target.z)<=ARENA.lureRadius,'new prey stays inside the arena');
 assert(body.volumeRatio()>.8&&body.volumeRatio()<1.2);
@@ -115,7 +122,7 @@ for(let shapeIndex=0;shapeIndex<PREY_SHAPES.length;shapeIndex++){
   rig.active=false;for(let i=0;i<240;i++)tick();
   rig.target.set(rig.torsoCenter.x,.012,rig.torsoCenter.z);rig.active=true;
   const shape=rig.feeding.shape;seen.push(shape);let absorbed=false,hidden=false,previousCoverage=0;
-  for(let i=0;i<1600;i++){
+  for(let i=0;i<2200;i++){
     tick();rendered.update(rig.feeding);
     if(rig.feeding.phase!=='spawning'){
       assert(rig.feeding.skinCoverage>=previousCoverage,'skin wrapping cannot reverse during the meal');

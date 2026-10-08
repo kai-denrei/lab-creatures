@@ -1,9 +1,11 @@
+import { selectedVariant } from './variants.ts';
 import { DEFAULT_MOTION, MOTION_CONTROLS, formatMotion, normalizeMotion } from './motion-settings.ts';
 import type { MotionSettings, MotionKey } from './motion-settings.ts';
 
 // Migrate only the two revised reach defaults; preserve the other tuned values.
 const specimen=new URLSearchParams(location.search).get('specimen')==='creature-lab'?'creature-lab':'nih-dairia';
-const storageKey=specimen==='creature-lab'?'creature-lab-motion-v1':'nih-dairia-motion-v3';
+const variant=selectedVariant();
+const storageKey=specimen==='creature-lab'?`creature-lab-motion-v1${variant.id==='nih-dairia'?'':`-${variant.id}`}`:'nih-dairia-motion-v3';
 export function loadMotionSettings(){
   const url=new URL(location.href),shared=url.searchParams.get('motion');
   if(shared){
@@ -15,7 +17,7 @@ export function loadMotionSettings(){
   }
   try{
     const current=localStorage.getItem(storageKey);if(current)return normalizeMotion(JSON.parse(current));
-    const previous=localStorage.getItem(specimen==='creature-lab'?'nih-dairia-motion-v3':'nih-dairia-motion-v2');
+    const previous=localStorage.getItem(specimen==='creature-lab'?(variant.id==='nih-dairia'?'nih-dairia-motion-v3':'creature-lab-motion-v1'):'nih-dairia-motion-v2');
     const settings=previous?specimen==='creature-lab'?normalizeMotion(JSON.parse(previous)):{...normalizeMotion(JSON.parse(previous)),reachTime:DEFAULT_MOTION.reachTime,stretch:DEFAULT_MOTION.stretch}:{...DEFAULT_MOTION};
     localStorage.setItem(storageKey,JSON.stringify(settings));return settings;
   }catch{return {...DEFAULT_MOTION};}
@@ -46,7 +48,7 @@ export function createTuningPanel(settings:MotionSettings){
   }
   panel.querySelector('#motion-defaults')!.addEventListener('click',()=>{Object.assign(settings,DEFAULT_MOTION);refresh();const saved=save();status.textContent=saved?'Default motion restored and saved.':'Default motion restored for this session.';},{signal});
   panel.querySelector('#motion-export')!.addEventListener('click',()=>{
-    const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,motion:settings},null,2)],{type:'application/json'}));
+    const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,variant:variant.id,motion:settings},null,2)],{type:'application/json'}));
     const link=document.createElement('a');link.href=url;link.download='nih-dairia-motion.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     status.textContent='Settings exported. Import this file to restore or share your motion.';
   },{signal});
@@ -54,12 +56,12 @@ export function createTuningPanel(settings:MotionSettings){
     try{await navigator.clipboard.writeText(value);if(!signal.aborted)status.textContent=message;}
     catch{if(signal.aborted)return;const fallback=panel.querySelector<HTMLElement>('.copy-fallback')!;fallback.hidden=false;const textarea=fallback.querySelector('textarea')!;textarea.value=value;textarea.focus();textarea.select();status.textContent='Select and copy the text below.';}
   };
-  panel.querySelector('#motion-copy')!.addEventListener('click',()=>{void copy(JSON.stringify({version:1,motion:settings},null,2),'Settings copied as JSON. Paste into another project or a message.');},{signal});
+  panel.querySelector('#motion-copy')!.addEventListener('click',()=>{void copy(JSON.stringify({version:1,variant:variant.id,motion:settings},null,2),'Settings copied as JSON. Paste into another project or a message.');},{signal});
   panel.querySelector('#motion-link')!.addEventListener('click',()=>{const url=new URL(location.href);url.searchParams.set('specimen',specimen);url.searchParams.set('motion',JSON.stringify(settings));void copy(url.href,'Link copied with these settings.');},{signal});
   const kitButton=panel.querySelector<HTMLButtonElement>('#motion-kit')!;
   kitButton.addEventListener('click',async()=>{
     kitButton.disabled=true;const snapshot={...settings};status.textContent='Packaging creature source, physics, model and settings…';
-    try{const {exportCreatureKit}=await import('./export-kit.ts');if(signal.aborted)return;await exportCreatureKit(snapshot);if(!signal.aborted)status.textContent='Code + settings downloaded. The ZIP includes a runnable demo and integration instructions.';}
+    try{const {exportCreatureKit}=await import('./export-kit.ts');if(signal.aborted)return;await exportCreatureKit(snapshot,variant.id);if(!signal.aborted)status.textContent='Code + settings downloaded. The ZIP includes a runnable demo and integration instructions.';}
     catch(error){if(!signal.aborted)status.textContent=error instanceof Error?error.message:'Could not export creature code.';}
     finally{kitButton.disabled=false;}
   },{signal});

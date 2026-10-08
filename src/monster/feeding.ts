@@ -2,7 +2,7 @@ import { Vector3 } from 'three/webgpu';
 import { PREY_SHAPES } from './prey.ts';
 import { ARENA } from './arena.ts';
 
-export type FeedingPhase='hunting'|'covering'|'dropping'|'absorbing'|'recovering'|'spawning';
+export type FeedingPhase='hunting'|'cradling'|'covering'|'dropping'|'absorbing'|'recovering'|'spawning';
 const smooth=(value:number)=>{const t=Math.max(0,Math.min(1,value));return t*t*(3-2*t);};
 
 /** Visual phagocytosis: stand over fixed prey, descend, mold around it, resolve.
@@ -24,18 +24,22 @@ export class FeedingCycle {
   get shape(){return PREY_SHAPES[(this.phase==='recovering'?Math.max(0,this.meals-1):this.meals)%PREY_SHAPES.length];}
   get visible(){return this.scale>.001&&!this.concealed;}
   reset(target:Vector3){this.phase='hunting';this.elapsed=0;this.dwell=0;this.drop=0;this.imprint=0;this.scale=1;this.meals=0;this.skinCoverage=0;this.concealed=false;this.preyPosition.copy(target);}
-  step(h:number,target:Vector3,center:Vector3,canCapture:boolean,bodyOnFloor=true){
+  step(h:number,target:Vector3,center:Vector3,canCapture:boolean,bodyOnFloor=true,wrapReady=true){
     this.elapsed+=h;
     if(this.phase==='hunting'){
       this.preyPosition.copy(target);this.scale=1;this.drop=0;this.imprint=0;
-      const close=Math.hypot(target.x-center.x,target.z-center.z)<.037;
+      const close=Math.hypot(target.x-center.x,target.z-center.z)<.075;
       this.dwell=this.enabled&&canCapture&&close?this.dwell+h:0;
-      if(this.dwell>=.10){this.capturedPosition.copy(target);this.phase='covering';this.elapsed=0;this.dwell=0;}
+      if(this.dwell>=.10){this.capturedPosition.copy(target);this.phase='cradling';this.elapsed=0;this.dwell=0;}
       return;
     }
     // Keep the sensory target fixed until the new prey is spawned.
     if(this.phase!=='spawning'){target.copy(this.capturedPosition);this.preyPosition.copy(this.capturedPosition);}
-    if(this.phase==='covering'){
+    if(this.phase==='cradling'){
+      this.drop=0;this.imprint=0;
+      this.dwell=wrapReady?this.dwell+h:0;
+      if(this.elapsed>=1.4&&this.dwell>=.12){this.phase='covering';this.elapsed=0;this.dwell=0;}
+    }else if(this.phase==='covering'){
       // Finish getting on top before lowering; the ball never travels to the body.
       this.drop=0;this.imprint=0;
       const error=Math.hypot(center.x-target.x,center.z-target.z);

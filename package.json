@@ -18,7 +18,9 @@
     "benchmark": "node --experimental-strip-types scripts/benchmark.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test:probes": "node --experimental-strip-types scripts/verify-probes.mjs"
+    "test:probes": "node --experimental-strip-types scripts/verify-probes.mjs",
+    "test:variants": "node --experimental-strip-types scripts/verify-variants.mjs",
+    "build:variants": "node scripts/build-monster.mjs brood && node scripts/build-monster.mjs reed && node scripts/build-monster.mjs crown"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

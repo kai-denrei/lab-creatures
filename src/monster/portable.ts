@@ -6,11 +6,12 @@ import { loadMonsterCage } from './model.ts';
 import { MonsterBehavior } from './behavior.ts';
 import { createMonsterAppearance } from './appearance.ts';
 import { normalizeMotion } from './motion-settings.ts';
+import type { CreatureVariant } from './variants.ts';
 import type { MotionSettings } from './motion-settings.ts';
 
 /** Drop-in actor for a Three.js WebGPU scene. Host owns rendering and lighting. */
-export async function createNihDairia(values:Partial<MotionSettings>={}){
-  const body=new SoftBody(await loadMonsterCage());
+export async function createNihDairia(values:Partial<MotionSettings>={},variant:CreatureVariant='nih-dairia'){
+  const body=new SoftBody(await loadMonsterCage(variant));
   const settings=normalizeMotion(values),motion=new MonsterBehavior(body,settings);
   const mesh=createMonsterAppearance(body,motion.feeding),clock=new FixedStepper(PHYS.step);
   let disposed=false;

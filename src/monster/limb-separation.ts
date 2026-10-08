@@ -9,11 +9,12 @@ export class LimbSeparation {
   contacts=0;
   private normal=new Vector3();
   constructor(body:SoftBody){
-    for(let limb=-1;limb<6;limb++)for(let band=0;band<(limb<0?1:5);band++){
+    const count=body.cage.limbCount??6;
+    for(let limb=-1;limb<count;limb++)for(let band=0;band<(limb<0?1:5);band++){
       const ids:number[]=[];
       for(let i=0;i<body.mass.length;i++){
         const x=body.rest[i*3],z=body.rest[i*3+2],r=Math.hypot(x,z);
-        if(limb<0?r<.022:r>=.035&&Math.min(4,Math.floor((r-.035)/.011))===band&&(Math.round(Math.atan2(z,x)/(Math.PI/3))+6)%6===limb)ids.push(i);
+        if(limb<0?r<.022:r>=.035&&Math.min(4,Math.floor((r-.035)/.011))===band&&(Math.round(Math.atan2(z,x)/(2*Math.PI/count))+count)%count===limb)ids.push(i);
       }
       if(ids.length)this.proxies.push({limb,band,ids,mass:ids.reduce((sum,i)=>sum+body.mass[i],0),radius:limb<0?.023:band<2?.010:.007,center:new Vector3(),velocity:new Vector3()});
     }
@@ -29,7 +30,7 @@ export class LimbSeparation {
       // Adjacent tissue is connected, not a collision. Distal limbs still collide with the torso.
       if(a.limb===b.limb&&Math.abs(a.band-b.band)<=2||a.limb<0&&b.band<2)continue;
       const n=this.normal.subVectors(b.center,a.center),distance=n.length(),gap=distance-a.radius-b.radius;
-      if(distance<1e-8)n.set(Math.cos(b.limb*Math.PI/3),0,Math.sin(b.limb*Math.PI/3));else n.multiplyScalar(1/distance);
+      if(distance<1e-8)n.set(Math.cos(b.limb*2*Math.PI/(body.cage.limbCount??6)),0,Math.sin(b.limb*2*Math.PI/(body.cage.limbCount??6)));else n.multiplyScalar(1/distance);
       const relative=(b.velocity.x-a.velocity.x)*n.x+(b.velocity.y-a.velocity.y)*n.y+(b.velocity.z-a.velocity.z)*n.z;
       if(gap>Math.max(0,-relative*h)+.002)continue;
       const change=Math.min(.18,Math.max(0,(.002-gap)*35-relative));

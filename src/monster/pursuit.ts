@@ -24,15 +24,17 @@ export class TentaclePursuit {
   private engaged=false;
   private clock=0;
   readonly settings:MotionSettings;
-  constructor(settings:MotionSettings={...DEFAULT_MOTION}){this.settings=settings;}
+  readonly count:number;
+  readonly spacing:number;
+  constructor(settings:MotionSettings={...DEFAULT_MOTION},count=6){this.settings=settings;this.count=count;this.spacing=2*Math.PI/count;}
   reset(){this.lead=0;this.secondLead=1;this.reach=0;this.secondReach=0;this.pull=0;this.speed=0;this.side=0;this.phase='reach';this.elapsed=0;this.burst=0;this.clock=0;this.engaged=false;}
   private selectArms(direction:Vector3){
     this.heading.copy(direction);
     const angle=Math.atan2(direction.z,direction.x);
-    this.lead=(Math.round(angle/(Math.PI/3))+6)%6;
-    const delta=Math.atan2(Math.sin(angle-this.lead*Math.PI/3),Math.cos(angle-this.lead*Math.PI/3));
+    this.lead=(Math.round(angle/this.spacing)+this.count)%this.count;
+    const delta=Math.atan2(Math.sin(angle-this.lead*this.spacing),Math.cos(angle-this.lead*this.spacing));
     const side=Math.abs(delta)<.08?(this.burst%2===0?1:-1):Math.sign(delta);
-    this.secondLead=(this.lead+side+6)%6;
+    this.secondLead=(this.lead+side+this.count)%this.count;
   }
   step(h:number,direction:Vector3,engaged:boolean,distance=.3){
     this.searchScale=smooth((distance-.045)/.18);
@@ -59,7 +61,7 @@ export class TentaclePursuit {
       this.secondReach=this.reach;
       if(this.elapsed>=settleDuration){this.phase='reach';this.elapsed=0;this.burst++;this.selectArms(direction);}
     }
-    const side=(this.secondLead-this.lead+6)%6===1?1:-1,angle=Math.atan2(direction.z,direction.x);
+    const side=(this.secondLead-this.lead+this.count)%this.count===1?1:-1,angle=Math.atan2(direction.z,direction.x);
     // Spread moves the two complete sensor arms apart, not just their membrane edges.
     const width=(.09+s.spread*.105)*(.25+.75*this.searchScale);
     // Independent, continuous arcs; repeatable variation avoids frame-rate noise.

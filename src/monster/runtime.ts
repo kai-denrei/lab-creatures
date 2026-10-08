@@ -9,6 +9,7 @@ import { createMonsterAppearance } from './appearance.ts';
 import { createMonsterInteraction } from './interaction.ts';
 import { createSpecimenScene } from './scene.ts';
 import { createTuningPanel, loadMotionSettings } from './tuning-panel.ts';
+import { selectedVariant } from './variants.ts';
 import { AutoLure } from './auto-lure.ts';
 
 export async function startMonster(stage:(message:string)=>void,fail:(reason:unknown)=>void){
@@ -20,8 +21,9 @@ export async function startMonster(stage:(message:string)=>void,fail:(reason:unk
   stage('Preparing the observation table');
   const environment=await loadEnvironment(renderer,scene);
   scene.environmentIntensity=.4;
-  stage('Growing six limbs');
-  const body=new SoftBody(await loadMonsterCage()),behavior=new MonsterBehavior(body,loadMotionSettings());
+  const variant=selectedVariant();
+  stage(`Growing ${variant.limbs} limbs`);
+  const body=new SoftBody(await loadMonsterCage(variant.id)),behavior=new MonsterBehavior(body,loadMotionSettings());
   const tuning=createTuningPanel(behavior.settings);
   const monster=createMonsterAppearance(body,behavior.feeding);scene.add(monster);
   const autoLure=new AutoLure();
@@ -37,7 +39,7 @@ export async function startMonster(stage:(message:string)=>void,fail:(reason:unk
   stage('Drawing the first frame');renderer.render(scene,camera);
   await (renderer.backend as unknown as {device:GPUDevice}).device.queue.onSubmittedWorkDone();
   const status=document.querySelector('#creature-state')!,note=document.querySelector('#state-note')!;
-  const descriptions={listening:'Stillness is part of the hunt.',probing:'It leans toward the stimulus, feet planted.',stalking:'Two arms feel in different directions. The body follows.',enveloping:'The probing arms fan around the lure. Rear legs brace.',recoiling:'It lowers its body and braces against the table.',covering:'Its feet plant while the torso settles over the prey.',dropping:'The center descends to the table and molds around the prey.',absorbing:'The membrane-covered shape holds, then slowly smooths into the body.',recovering:'The deformation is gone. The creature rises again.',spawning:'Another stimulus appears across the table.'};
+  const descriptions={listening:'Stillness is part of the hunt.',probing:'It leans toward the stimulus, feet planted.',stalking:'Two arms feel in different directions. The body follows.',enveloping:'The probing arms fan around the lure. Rear legs brace.',recoiling:'It lowers its body and braces against the table.',cradling:'Two arms cup the prey, one side first. The rear legs brace.',covering:'Its feet plant while the torso settles over the prey.',dropping:'The center descends to the table and molds around the prey.',absorbing:'The membrane-covered shape holds, then slowly smooths into the body.',recovering:'The deformation is gone. The creature rises again.',spawning:'Another stimulus appears across the table.'};
   let previousState='';
   lastTime=performance.now();
   await renderer.setAnimationLoop(time=>{
