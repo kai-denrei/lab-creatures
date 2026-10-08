@@ -17,3 +17,7 @@ body.landing,body.landing #app{height:auto;overflow:visible}html:has(body.landin
 
 @media(pointer:coarse){.baby-playground .icon-button{width:44px;height:44px}.baby-playground .back-link{min-height:44px}}
 @media(display-mode:standalone){.lab-nav{padding-top:env(safe-area-inset-top);height:calc(102px + env(safe-area-inset-top))}.lab-footer{padding-bottom:max(30px,env(safe-area-inset-bottom))}}
+
+.player-picker{pointer-events:auto;display:block;margin-top:18px;font-size:11px}
+.player-picker select{display:block;margin-top:6px;min-height:44px;max-width:210px;width:100%;padding:8px 12px;border:1px solid #52663260;border-radius:8px;background:#f7f3e7ed;color:#394028;font:16px ui-sans-serif,sans-serif}
+@media(max-height:520px){.baby-playground .masthead{top:70px}.player-picker{margin-top:8px}.baby-playground .masthead>.eyebrow{display:none}.baby-playground h1{font-size:25px}}

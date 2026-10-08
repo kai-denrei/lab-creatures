@@ -1,17 +1,14 @@
 import * as THREE from 'three/webgpu';
-import { SoftBody } from '../physics/soft-body.js';
 import { PHYS } from '../physics/constants.js';
-import { loadBabyCage } from '../physics/baby-cage.ts';
 import { RefractiveLightField } from '../graphics/refractive-light.js';
-import { Baby, ABSORPTION } from '../graphics/baby.ts';
 import { loadEnvironment } from '../graphics/environment.ts';
 import { makeTable } from '../graphics/table.ts';
-import { Locomotion } from './locomotion.ts';
 import { Input } from './input.ts';
 import { JellySound } from './sound.ts';
 import { createRenderer, resizeView } from '../graphics/renderer.ts';
 import { OpticalTransport } from '../graphics/transport.ts';
 import { createComposite } from '../graphics/composite.ts';
+import { createPlayerCreature, selectedPlayerCreature } from './player-creature.ts';
 import { FixedStepper } from './fixed-step.ts';
 
 export async function startGame(stage:(s:string)=>void,fail:(e:unknown)=>void) {
@@ -24,18 +21,20 @@ export async function startGame(stage:(s:string)=>void,fail:(e:unknown)=>void) {
   camera.position.set(.082,.126,.19);
   stage('Reading the light');
   const environment=await loadEnvironment(renderer,scene);
-  stage('Making a little jelly');
-  const body=new SoftBody(await loadBabyCage());
-  const baby=new Baby(body);scene.add(baby.group);
-  const optics=new RefractiveLightField(body.cage.opticalSurface,environment.incoming,ABSORPTION);
+  const kind=selectedPlayerCreature();
+  stage(kind==='nih-dairia'?'Growing the tentacles':'Making a little jelly');
+  const actor=await createPlayerCreature(kind),{body,rig}=actor;scene.add(actor.group);
+  camera.position.multiplyScalar(actor.cameraScale);
+  renderer.domElement.setAttribute('aria-label',`${kind==='nih-dairia'?'Nih-Dairia':'Jelly Baby'}. WASD or arrow keys to walk. Space to ${kind==='nih-dairia'?'brace':'hop'}. Drag the creature to stretch; drag the table to orbit.`);
+  const optics=new RefractiveLightField(body.cage.opticalSurface,environment.incoming,actor.absorption);
   const table=await makeTable(optics,environment);scene.add(table.mesh);
   const composite=createComposite(renderer,scene,camera);
-  const sound=new JellySound(),rig=new Locomotion(body);
+  const sound=new JellySound();
   rig.onContact=(speed,foot)=>sound.contact(speed,foot);
   const physicsClock=new FixedStepper(PHYS.step);
   let lastTime=0,disposed=false;
   const reset=()=>{input.recenter();body.reset();physicsClock.reset();};
-  const input=new Input(camera,renderer.domElement,body,baby.mesh,rig,sound,reset);
+  const input=new Input(camera,renderer.domElement,body,actor.mesh,rig,sound,reset,actor.cameraScale);
   const transport=new OpticalTransport(optics,body,camera,environment.incoming,fail);
   const resize=()=>resizeView(renderer,camera,input.controls);
   let resizeFrame=0;
@@ -55,7 +54,7 @@ export async function startGame(stage:(s:string)=>void,fail:(e:unknown)=>void) {
   stage('Settling in');
   // Let contact establish itself before displaying the first frame.
   for(let i=0;i<80;i++){rig.step(PHYS.step);body.step(PHYS.step);}
-  body.updateSurface();baby.update();input.update(1);
+  body.updateSurface();actor.update();input.update(1);
   optics.update(renderer,body,true);
   await transport.update();
   stage('Compiling the material');
@@ -76,7 +75,7 @@ export async function startGame(stage:(s:string)=>void,fail:(e:unknown)=>void) {
       });
       if(steps&&body.surfaceDirty) {
         if(!body.isFinite())throw new Error('The soft-body simulation produced an invalid state');
-        body.updateSurface();baby.update();
+        body.updateSurface();actor.update();
       }
       input.update(dt);
       transport.follow();
@@ -90,7 +89,7 @@ export async function startGame(stage:(s:string)=>void,fail:(e:unknown)=>void) {
   const dispose=()=>{
     if(disposed)return;disposed=true;
     void renderer.setAnimationLoop(null);input.dispose();sound.dispose();transport.dispose();resizeObserver.disconnect();cancelAnimationFrame(resizeFrame);
-    composite.dispose();baby.dispose();table.dispose();environment.dispose();optics.dispose();renderer.dispose();
+    composite.dispose();actor.dispose();table.dispose();environment.dispose();optics.dispose();renderer.dispose();
   };
   window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();});
   if(import.meta.hot)import.meta.hot.dispose(dispose);

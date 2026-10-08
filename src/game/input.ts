@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { SoftBody } from '../physics/soft-body.js';
-import type { Locomotion } from './locomotion.ts';
+import type { PlayerRig } from './player-rig.ts';
 import type { JellySound } from './sound.ts';
 import { surfaceGrab, projectGrabTarget, advanceGrabTarget } from '../physics/grab.ts';
 import { SurfaceBVH } from '../graphics/refractive-light.js';
@@ -28,19 +28,19 @@ export class Input {
   readonly camera:THREE.PerspectiveCamera;
   readonly body:SoftBody;
   readonly mesh:THREE.Mesh;
-  readonly rig:Locomotion;
+  readonly rig:PlayerRig;
   readonly sound:JellySound;
   readonly reset:()=>void;
   constructor(camera:THREE.PerspectiveCamera,canvas:HTMLCanvasElement,
-    body:SoftBody,mesh:THREE.Mesh,rig:Locomotion,sound:JellySound,
-    reset:()=>void) {
+    body:SoftBody,mesh:THREE.Mesh,rig:PlayerRig,sound:JellySound,
+    reset:()=>void,cameraScale=1) {
     this.camera=camera;this.body=body;this.mesh=mesh;this.rig=rig;this.sound=sound;this.reset=reset;
     this.canvas=canvas;this.grabBVH=new SurfaceBVH(body.surface);
     this.controls=new OrbitControls(camera,canvas);
     const c=this.controls;
     c.target.copy(body.center);this.follow.copy(c.target);
     c.enablePan=false;c.enableDamping=true;c.dampingFactor=.07;
-    c.minDistance=.135;c.maxDistance=.42;c.minPolarAngle=.22;c.maxPolarAngle=1.10;
+    c.minDistance=.135*cameraScale;c.maxDistance=.42*cameraScale;c.minPolarAngle=.22;c.maxPolarAngle=1.10;
     c.rotateSpeed=.65;c.zoomSpeed=.65;c.update();
     const signal=this.abort.signal;
     canvas.addEventListener('pointerdown',this.begin,{capture:true,signal});

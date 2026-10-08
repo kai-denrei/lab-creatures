@@ -307,3 +307,11 @@ On phones, specimen selection and each tuning group collapse independently. **Hi
 The relative-path manifest and mask-safe icons support installation under the GitHub Pages subdirectory. Use the browser's Install/Add to Home Screen command. The installed app opens Creature Lab, supports either orientation, and still requires WebGPU, HTTPS and a network connection to load. Offline caching is not implemented. A service worker is [not required for installability](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
 
 `npm run test:mobile` verifies touch-mode selection, auto preference preservation, pointer cancellation and the feeding status without a GPU. Probe regressions also cover maximum reach duration with continuously turning prey and live setting changes. Real-device visual checks remain manual: portrait/landscape, pinch zoom, slider drags and sheet scrolling, app switching during a prey drag, home-screen launch, and a full auto feeding cycle. No browser/device visual inspection is automated by this repository.
+
+## Play as Nih-Dairia
+
+Open the Jelly Baby playground and select **Nih-Dairia** from **Play as**, or open `?specimen=jelly-baby&creature=nih-dairia`. Selection reloads the playground with the chosen body plan and a camera distance sized for it. Both creatures use the same wooden table, environment lighting, optical transport, follow camera and physical grab controls.
+
+WASD / arrow keys and the mobile D-pad steer relative to the camera. Nih-Dairia uses its own reach/pull gait and planted-foot traction; releasing movement brakes it. Space / the touch action makes it brace. Feeding and autonomous prey pursuit are disabled in this player mode. The Creature Lab retains its separate hunting behavior and tuning. Reset / R restores the selected creature.
+
+`npm run test:player` checks four-direction travel, key-release braking, travel beyond the lab arena, bracing, grab handoff and reset with the actual soft-body solver.
