@@ -13,8 +13,8 @@ import { ARENA } from '../src/monster/arena.ts';
 
 // Keep the original choreography as a regression fixture; exercise the user's
 // new default and expanded ranges separately below.
-const baseline={speed:1,reachTime:1,pullTime:1,pauseTime:1,erratic:1,stretch:1,spread:1,stepHeight:.021,stepDuration:.19,stepSpacing:.07,stride:.022,recoil:1,grip:0};
-assert.deepEqual(DEFAULT_MOTION,{speed:1.8,reachTime:2.4,pullTime:2,pauseTime:1.25,erratic:2,stretch:2.2,spread:1.6,stepHeight:.032,stepDuration:.12,stepSpacing:.035,stride:.022,recoil:1,grip:1.5});
+const baseline={speed:1,reachTime:1,pullTime:1,pauseTime:1,erratic:1,stretch:1,spread:1,stepHeight:.021,stepDuration:.19,stepSpacing:.07,stride:.022,recoil:1,grip:0,sweep:0};
+assert.deepEqual(DEFAULT_MOTION,{speed:1.8,reachTime:2.4,pullTime:2,pauseTime:1.25,erratic:2,stretch:2.2,spread:1.6,stepHeight:.032,stepDuration:.12,stepSpacing:.035,stride:.022,recoil:1,grip:1.5,sweep:1});
 
 assert.deepEqual(normalizeMotion(null),DEFAULT_MOTION);
 const sanitized=normalizeMotion({speed:100,stretch:NaN,stepHeight:-2,pullTime:'bad'});

@@ -69,7 +69,7 @@ export function createTuningPanel(settings:MotionSettings){
     try{
       if(file.size>32_000)throw new Error('Settings file is too large.');
       const data=JSON.parse(await file.text());
-      if(data?.version!==1||!data.motion||typeof data.motion!=='object'||Array.isArray(data.motion)||!MOTION_CONTROLS.every(({key})=>key==='grip'&&data.motion[key]===undefined||typeof data.motion[key]==='number'&&Number.isFinite(data.motion[key])))throw new Error('Choose an exported Nih-Dairia motion settings file.');
+      if(data?.version!==1||!data.motion||typeof data.motion!=='object'||Array.isArray(data.motion)||!MOTION_CONTROLS.every(({key})=>['grip','sweep'].includes(key)&&data.motion[key]===undefined||typeof data.motion[key]==='number'&&Number.isFinite(data.motion[key])))throw new Error('Choose an exported Nih-Dairia motion settings file.');
       if(signal.aborted)return;
       Object.assign(settings,normalizeMotion(data.motion));refresh();const saved=save();status.textContent=saved?'Motion settings imported and saved.':'Motion settings imported for this session.';
     }catch(error){if(!signal.aborted)status.textContent=error instanceof Error?error.message:'Could not import settings.';}

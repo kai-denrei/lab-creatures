@@ -34,3 +34,30 @@ for(let arm=0;arm<2;arm++){
 assert(wide.width>narrow.width+.04,'spread widens the two actual sensor tips by at least 4 cm');
 assert(long.advance<.03,'the searching arms extend before the whole body follows');
 console.log('PASS — two physical sensor arms, stretch/spread range and distance taper');
+
+// A long reach must include visible lateral travel while both arms are extended.
+function sweepTravel(sweep){
+ Object.assign(rig.settings,DEFAULT_MOTION,{reachTime:10,stretch:3,sweep});rig.reset();rig.active=false;
+ for(let i=0;i<240;i++)tick();
+ rig.target.set(.35,.012,0);rig.active=true;rig.stimulus=1;
+ const low=[Infinity,Infinity],high=[-Infinity,-Infinity];let staggered=0;
+ for(let i=0;i<440;i++){
+  tick();
+  if(i<290||i%4)continue;
+  assert.equal(rig.pursuit.phase,'reach','10x duration keeps the body in search mode');
+  body.updateSurface();
+  for(const [arm,leg] of [rig.pursuit.lead,rig.pursuit.secondLead].entries()){
+   const ids=tips[leg];let x=0,z=0;
+   for(const j of ids){x+=body.surface.positions[j]/ids.length;z+=body.surface.positions[j+2]/ids.length;}
+   const angle=Math.atan2(z-rig.center.z,x-rig.center.x);low[arm]=Math.min(low[arm],angle);high[arm]=Math.max(high[arm],angle);
+  }
+  const a=rig.pursuit.firstDirection,b=rig.pursuit.secondDirection;
+  if(Math.abs(a.z+b.z)>.05)staggered++;
+ }
+ return {ranges:high.map((v,i)=>v-low[i]),staggered};
+}
+const steady=sweepTravel(0),sweeping=sweepTravel(3);
+console.log('physical sweep angle ranges (radians)',{steady,sweeping});
+for(let i=0;i<2;i++)assert(sweeping.ranges[i]>steady.ranges[i]+.15,'each actual arm sweeps through a visibly larger arc');
+assert(sweeping.staggered>10,'arms are not locked into mirrored arcs');
+console.log('PASS — extended ground-search sweep, separate timing and 10x reach duration');

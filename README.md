@@ -174,7 +174,7 @@ changes when covered. Only the next prey's appearance uses a scale animation.
 stationary prey, visible skin prominence and its resolution before recovery,
 distant respawns, reset and repeated automatic meals.
 
-Open **Motion tuning** to adjust thirteen live controls: chase speed, reach and
+Open **Motion tuning** to adjust fourteen live controls: chase speed, reach and
 surge duration, pauses, erratic motion, leading-limb stretch/spread, foot lift,
 step duration, leg stagger, stride length and recoil depth. Footwork changes are
 sampled at the next step so a slider does not teleport a planted foot. The panel
@@ -286,3 +286,6 @@ Tentacle reach targets stay within separate radial sectors and outside the torso
 Probe controls now act on the pair of sensory arms: stretch raises their forward reach and muscle authority; spread widens their divergent sweeping directions. Extension and sweeping taper from full exploration at 225 mm to minimal reach at 45 mm from prey. During search, horizontal muscle forces balance so the arms extend before the torso follows in the pull phase. `npm run test:probes` measures both physical tips at zero/max stretch and spread and near/far prey distances.
 
 `/?specimen=creature-lab` opens a separate Creature Lab tab, currently seeded with the six-limbed Nih-Dairia ancestor. It shares the simulation and feeding features, but stores motion tuning independently (`creature-lab-motion-v1`), initially copied from the reference specimen. Shared settings links retain the chosen tab. Future descendants can vary anatomy in this workspace; no extra species or anatomical variants are claimed yet.
+
+
+Reach duration extends to **10×**. **Reach sweep** (0–5×, default 1×) independently controls the two leading arms’ side-to-side ground-search arcs. At zero, their directions stay steady relative to prey. Enabling sweep brings the arms to full extension earlier in the reach phase, leaving time to explore before the torso pulls forward. The arcs have offset timing and slowly varying phases, remain on opposite sides of the target, and diminish near prey. Existing saved/exported settings gain the new default without losing other tuning.

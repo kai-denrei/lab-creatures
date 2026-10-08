@@ -1,18 +1,19 @@
 export const DEFAULT_MOTION={
   speed:1.8,reachTime:2.4,pullTime:2,pauseTime:1.25,erratic:2,
-  stretch:2.2,spread:1.6,stepHeight:.032,stepDuration:.12,stepSpacing:.035,stride:.022,recoil:1,grip:1.5,
+  stretch:2.2,spread:1.6,stepHeight:.032,stepDuration:.12,stepSpacing:.035,stride:.022,recoil:1,grip:1.5,sweep:1,
 };
 export type MotionSettings=typeof DEFAULT_MOTION;
 export type MotionKey=keyof MotionSettings;
 type Control={key:MotionKey;label:string;group:string;min:number;max:number;step:number;unit:'×'|'mm'|'ms';hint:string};
 export const MOTION_CONTROLS:Control[]=[
   {key:'speed',label:'Chase speed',group:'Pursuit',min:.1,max:6,step:.05,unit:'×',hint:'How hard the body surges after the reach.'},
-  {key:'reachTime',label:'Reach duration',group:'Pursuit',min:.3,max:8,step:.05,unit:'×',hint:'Higher gives both arms more time before the body follows.'},
+  {key:'reachTime',label:'Reach duration',group:'Pursuit',min:.3,max:10,step:.05,unit:'×',hint:'Higher gives both arms more time before the body follows.'},
   {key:'pullTime',label:'Surge duration',group:'Pursuit',min:.3,max:8,step:.05,unit:'×',hint:'How long each forward burst lasts.'},
   {key:'pauseTime',label:'Pause between bursts',group:'Pursuit',min:.1,max:12,step:.05,unit:'×',hint:'Higher adds longer threatening pauses.'},
   {key:'erratic',label:'Erratic motion',group:'Pursuit',min:0,max:6,step:.05,unit:'×',hint:'Timing variation, uneven strides and sideways feints.'},
   {key:'stretch',label:'Probing arm stretch',group:'Probing arms',min:0,max:5,step:.05,unit:'×',hint:'How far both sensor arms extend ahead. Reaches shorten near prey.'},
   {key:'spread',label:'Probing arm spread',group:'Probing arms',min:0,max:6,step:.05,unit:'×',hint:'How widely the two sensor arms separate and sweep while searching.'},
+  {key:'sweep',label:'Reach sweep',group:'Probing arms',min:0,max:5,step:.05,unit:'×',hint:'Side-to-side ground-search arcs of both extended sensors. Zero holds their directions steady.'},
   {key:'stepHeight',label:'Foot lift',group:'Footwork',min:.004,max:0.1,step:.001,unit:'mm',hint:'Height of each supporting foot above its planted target.'},
   {key:'stepDuration',label:'Step duration',group:'Footwork',min:.08,max:1,step:.005,unit:'ms',hint:'Lower produces faster lift, swing and landing.'},
   {key:'stepSpacing',label:'Leg stagger',group:'Footwork',min:.015,max:0.6,step:.005,unit:'ms',hint:'Minimum delay before the next leg lifts. At most two supporting legs swing.'},

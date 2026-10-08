@@ -45,8 +45,9 @@ export class TentaclePursuit {
     const s=this.settings,variation=.5+.5*Math.sin(this.burst*2.399+1.1)*Math.min(1,s.erratic);
     const reachDuration=(.14+variation*.07)*s.reachTime,pullDuration=(.17+(1-variation)*.10)*s.pullTime,settleDuration=(.045+variation*.08)*s.pauseTime;
     if(this.phase==='reach'){
-      this.reach=smooth(this.elapsed/reachDuration);this.pull=0;
-      this.secondReach=smooth((this.elapsed/reachDuration-.16)/.84);
+      const extensionPart=1-.5*Math.min(1,s.sweep);
+      this.reach=smooth(this.elapsed/reachDuration/extensionPart);this.pull=0;
+      this.secondReach=smooth((this.elapsed/reachDuration-.16)/(.84*extensionPart));
       if(this.elapsed>=reachDuration){this.phase='pull';this.elapsed=0;}
     }else if(this.phase==='pull'){
       const t=clamp(this.elapsed/pullDuration);
@@ -61,8 +62,14 @@ export class TentaclePursuit {
     const side=(this.secondLead-this.lead+6)%6===1?1:-1,angle=Math.atan2(direction.z,direction.x);
     // Spread moves the two complete sensor arms apart, not just their membrane edges.
     const width=(.09+s.spread*.105)*(.25+.75*this.searchScale);
-    const sweep=(.02+s.spread*.018)*this.searchScale;
-    const a=angle-side*(width+sweep*Math.sin(this.clock*2.1)),b=angle+side*(width+sweep*Math.sin(this.clock*1.7+1.3));
+    // Independent, continuous arcs; repeatable variation avoids frame-rate noise.
+    // Finish extending early enough to search while fully outstretched.
+    const sweep=s.sweep*.17*this.searchScale;
+    const firstArc=Math.sin(this.clock*3.6+.35*Math.sin(this.clock*.73));
+    const secondArc=Math.sin(this.clock*3.1+1.7+.4*Math.sin(this.clock*.91+2));
+    const offsetA=Math.max(.06,Math.min(1.2,width+sweep*firstArc));
+    const offsetB=Math.max(.06,Math.min(1.2,width+sweep*secondArc));
+    const a=angle-side*offsetA,b=angle+side*offsetB;
     this.firstDirection.set(Math.cos(a),0,Math.sin(a));this.secondDirection.set(Math.cos(b),0,Math.sin(b));
     this.speed=this.pull*(.10+variation*.055)*s.speed;
     this.side=Math.sin(this.burst*4.13+.7)*this.pull*.28*s.erratic;
