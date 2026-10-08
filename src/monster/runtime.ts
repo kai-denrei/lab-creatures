@@ -52,7 +52,7 @@ export async function startMonster(stage:(message:string)=>void,fail:(reason:unk
       updateMonsterAppearance(monster);
       prey.update(behavior.feeding);
       if(previousState!==behavior.state){previousState=behavior.state;status.textContent=behavior.state;note.textContent=descriptions[behavior.state];}
-      input.controls.update();renderer.render(scene,camera);
+      input.update();input.controls.update();renderer.render(scene,camera);
     }catch(error){fail(error);}
   });
   const stop=()=>{stopped=true;void renderer.setAnimationLoop(null);};

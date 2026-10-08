@@ -1,7 +1,7 @@
 import { Vector3 } from 'three/webgpu';
 import { ARENA } from './arena.ts';
 
-/** Bounded, smooth figure-eight stimulus. Manual grabbing switches it off. */
+/** Bounded, smooth figure-eight stimulus. The host pauses stepping during manual grabs and feeding. */
 export class AutoLure {
   enabled=false;
   private time=0;

@@ -297,3 +297,13 @@ A **cradling** phase precedes covering. Two front arms approach opposite prey fl
 
 
 The second family adds **Ovum** (six tentacles with an oblong, swollen abdomen), **Sept** (seven tentacles), **Filament** (a tiny central junction and almost pure tentacles), and **Globulifer** (branched dorsal stalks with four globular tips). Globulifer’s silhouette is inspired by [Bocydium globulare, photographed in National Geographic](https://www.nationalgeographic.com/animals/article/crazy-animals-lady-gaga). Its dorsal growths follow the deformed back’s position and surface normal; they are lightweight visual attachments without independent soft-body dynamics or collisions. The other anatomical differences are built into each variant’s surface and tetrahedral physics cage. No reference photographs are bundled.
+
+## Mobile and home-screen use
+
+The creature scenes reserve touch gestures for the camera: drag to orbit and pinch to zoom. **Move prey** switches on touch dragging; tap **Camera mode** to return. Dragging pauses an enabled auto lure until release, without switching its preference off. The status line distinguishes reach/pull/settle, a held prey, paused instinct and feeding. Long reach/pause settings deliberately introduce pauses; **Reset** restarts a stalled encounter without losing tuning.
+
+On phones, specimen selection and each tuning group collapse independently. **Hide controls** leaves the scene and a **Show controls** button. Sliders have 48px touch areas and 28px thumbs. The sheet scrolls independently; browser page panning is suppressed on the scene, not on the controls. OS edge gestures remain OS-controlled.
+
+The relative-path manifest and mask-safe icons support installation under the GitHub Pages subdirectory. Use the browser's Install/Add to Home Screen command. The installed app opens Creature Lab, supports either orientation, and still requires WebGPU, HTTPS and a network connection to load. Offline caching is not implemented. A service worker is [not required for installability](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
+
+`npm run test:mobile` verifies touch-mode selection, auto preference preservation, pointer cancellation and the feeding status without a GPU. Probe regressions also cover maximum reach duration with continuously turning prey and live setting changes. Real-device visual checks remain manual: portrait/landscape, pinch zoom, slider drags and sheet scrolling, app switching during a prey drag, home-screen launch, and a full auto feeding cycle. No browser/device visual inspection is automated by this repository.

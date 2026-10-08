@@ -26,11 +26,11 @@ export function createTuningPanel(settings:MotionSettings){
   const panel=document.createElement('details');panel.className='motion-panel';panel.open=matchMedia('(min-width:1000px)').matches;
   const groups=[...new Set(MOTION_CONTROLS.map(control=>control.group))];
   panel.innerHTML=`<summary>Motion tuning <span>adjust live</span></summary><div class="motion-panel-body">
-    <p class="tuning-intro">Drag the lure as you tune. Footwork changes apply on the next step.</p>
-    ${groups.map(group=>`<fieldset><legend>${group}</legend>${MOTION_CONTROLS.filter(control=>control.group===group).map(control=>`
+    <p class="tuning-intro">Drag the lure as you tune. Footwork changes apply on the next step. Long reach and pause durations deliberately slow the chase. Pinch the scene to zoom; use Move prey to drag on touch screens.</p>
+    ${groups.map(group=>`<details class="motion-group"><summary>${group}</summary>${MOTION_CONTROLS.filter(control=>control.group===group).map(control=>`
       <div class="motion-control"><label for="motion-${control.key}">${control.label}</label><output for="motion-${control.key}" id="value-${control.key}"></output>
       <input type="range" id="motion-${control.key}" data-motion="${control.key}" min="${control.min}" max="${control.max}" step="${control.step}" aria-describedby="hint-${control.key}">
-      <p id="hint-${control.key}">${control.hint}</p></div>`).join('')}</fieldset>`).join('')}
+      <p id="hint-${control.key}">${control.hint}</p></div>`).join('')}</details>`).join('')}
     <div class="tuning-actions"><button type="button" id="motion-defaults">Restore defaults</button><button type="button" id="motion-export">Export settings</button><label class="import-motion" for="motion-import">Import settings<input type="file" id="motion-import" accept="application/json,.json"></label><button type="button" id="motion-copy">Copy settings</button><button type="button" id="motion-link">Copy settings link</button><button type="button" id="motion-kit">Download code + settings</button></div>
     <label class="copy-fallback" hidden>Press Ctrl/Cmd+C to copy<textarea readonly aria-label="Settings to copy"></textarea></label>
     <p class="tuning-status" role="status" aria-live="polite">Settings stay in this browser. Reset restarts the creature without changing your tuning.</p></div>`;

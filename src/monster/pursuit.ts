@@ -20,7 +20,6 @@ export class TentaclePursuit {
   phase:'reach'|'pull'|'settle'='reach';
   private elapsed=0;
   private burst=0;
-  private heading=new Vector3(1,0,0);
   private engaged=false;
   private clock=0;
   readonly settings:MotionSettings;
@@ -29,7 +28,6 @@ export class TentaclePursuit {
   constructor(settings:MotionSettings={...DEFAULT_MOTION},count=6){this.settings=settings;this.count=count;this.spacing=2*Math.PI/count;}
   reset(){this.lead=0;this.secondLead=1;this.reach=0;this.secondReach=0;this.pull=0;this.speed=0;this.side=0;this.phase='reach';this.elapsed=0;this.burst=0;this.clock=0;this.engaged=false;}
   private selectArms(direction:Vector3){
-    this.heading.copy(direction);
     const angle=Math.atan2(direction.z,direction.x);
     this.lead=(Math.round(angle/this.spacing)+this.count)%this.count;
     const delta=Math.atan2(Math.sin(angle-this.lead*this.spacing),Math.cos(angle-this.lead*this.spacing));
@@ -40,7 +38,9 @@ export class TentaclePursuit {
     this.searchScale=smooth((distance-.045)/.18);
     this.clock+=h;
     if(!engaged){this.engaged=false;this.reach*=Math.exp(-h*14);this.secondReach*=Math.exp(-h*14);this.pull=0;this.speed=0;this.side=0;return;}
-    if(!this.engaged||this.heading.dot(direction)<.55){
+    // A moving target must not restart every long reach and starve the pull phase.
+    // Sensor directions follow it continuously; arm selection changes between bursts.
+    if(!this.engaged){
       this.phase='reach';this.elapsed=0;this.reach=0;this.secondReach=0;this.pull=0;this.selectArms(direction);
     }
     this.engaged=true;this.elapsed+=h;

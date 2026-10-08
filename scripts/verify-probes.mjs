@@ -61,3 +61,17 @@ console.log('physical sweep angle ranges (radians)',{steady,sweeping});
 for(let i=0;i<2;i++)assert(sweeping.ranges[i]>steady.ranges[i]+.15,'each actual arm sweeps through a visibly larger arc');
 assert(sweeping.staggered>10,'arms are not locked into mirrored arcs');
 console.log('PASS — extended ground-search sweep, separate timing and 10x reach duration');
+
+// A target that turns during a long reach used to reset the phase indefinitely.
+// Exercise live slider changes and maximum duration against repeated direction changes.
+const pursuit=rig.pursuit;pursuit.reset();
+const direction=rig.target.clone();let pulls=0;
+Object.assign(rig.settings,DEFAULT_MOTION,{reachTime:10,sweep:5});
+for(let i=0;i<240*20;i++){
+ const angle=i/240*3;direction.set(Math.cos(angle),0,Math.sin(angle));
+ if(i===240*5)Object.assign(rig.settings,{stretch:5,spread:6,grip:5,pauseTime:12});
+ pursuit.step(PHYS.step,direction,true,.3);
+ if(pursuit.speed>0)pulls++;
+}
+assert(pulls>100,'turning prey and live tuning must not starve the pull phase');
+console.log('PASS — long reaches keep pulling after repeated target turns and live tuning');

@@ -20,3 +20,51 @@
 
 .variant-picker{pointer-events:auto;margin-top:18px;max-width:255px;padding:12px;background:#19231fe8;border:1px solid #b8c6a735;border-radius:5px}.variant-picker label{display:block;font-size:10px;margin-bottom:8px;color:#d0ac7d}.variant-picker select{width:100%;padding:9px 6px;background:#25322b;color:#e0e4cf;border:1px solid #b8c6a755;font:inherit;font-size:11px}.monster-page .masthead .variant-picker p{font-size:10px;line-height:1.6;margin:8px 0 0;letter-spacing:0;opacity:.7}
 @media(max-width:700px),(max-height:520px){.variant-picker{margin-top:8px;padding:6px;max-width:210px}.variant-picker label,.monster-page .masthead .variant-picker p{display:none}.variant-picker select{padding:7px 4px;font-size:10px}}
+
+/* Touch controls keep browser gestures on the UI and camera gestures on canvas. */
+.specimen-menu{pointer-events:auto;margin-top:12px;max-width:330px}
+.specimen-menu>summary{min-height:44px;cursor:pointer;padding:12px;background:#19231fe8;border-radius:6px;font-size:12px}
+.specimen-menu .specimen-tabs{margin-top:6px}
+.motion-group{border-top:1px solid #b8c6a72b;margin-top:12px}
+.motion-panel .motion-group>summary{position:static;background:transparent;color:#d0ac7d;font-size:13px;padding:14px 0}
+.motion-control label,.motion-control output{font-size:13px}
+.motion-control p,.tuning-intro,.tuning-status{font-size:12px}
+.motion-control input{height:48px;touch-action:none;appearance:none;background:transparent}
+.motion-control input::-webkit-slider-runnable-track{height:6px;background:#64715b;border-radius:6px}
+.motion-control input::-webkit-slider-thumb{appearance:none;width:28px;height:28px;margin-top:-11px;border-radius:50%;background:#d7b589;border:2px solid #26332b}
+.motion-control input::-moz-range-track{height:6px;background:#64715b;border-radius:6px}
+.motion-control input::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#d7b589;border:2px solid #26332b}
+.tuning-actions button,.import-motion{min-height:48px;font-size:12px;display:grid;place-items:center;flex:1 1 40%}
+.copy-fallback textarea,.variant-picker select{font-size:16px}
+.variant-picker select{min-height:48px}
+.monster-page .actions button,.monster-page .back-link,.monster-page #autonomy,.monster-page #auto-lure,.monster-page #drag-mode,#scene-view{min-height:44px;font-size:12px;touch-action:manipulation}
+#drag-mode,#scene-view{pointer-events:auto;background:#25322bf2;color:#d9dfc8;border:1px solid #b8c6a750;border-radius:6px;padding:10px 12px}
+#drag-mode{display:none}
+#scene-view{position:fixed;z-index:4;bottom:max(16px,env(safe-area-inset-bottom));right:max(16px,env(safe-area-inset-right))}
+#motion-status{display:block;margin-top:10px;font-size:12px;color:#d7b589;min-height:16px}
+.scene-only .masthead,.scene-only .actions,.scene-only .observation,.scene-only .motion-panel,.scene-only .monster-hints,.scene-only .boss-note{display:none}
+@media(pointer:coarse){#drag-mode{display:inline-block}.specimen-tabs a{min-height:44px;display:flex;align-items:center;font-size:12px}}
+@media(max-width:700px),(max-height:520px) and (pointer:coarse){
+  .monster-page .actions{top:calc(env(safe-area-inset-top) + 8px);left:max(12px,env(safe-area-inset-left));right:auto;gap:6px}
+  .monster-page .actions button,.monster-page .back-link{padding:10px}
+  #scene-view{top:calc(env(safe-area-inset-top) + 8px);right:max(12px,env(safe-area-inset-right));bottom:auto}
+  .monster-page .masthead{top:calc(env(safe-area-inset-top) + 62px);left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));z-index:2}
+  .monster-page .masthead h1{font-size:24px;letter-spacing:-.6px;margin:0}
+  .monster-page .masthead>.eyebrow,.monster-page .masthead>p{display:none}
+  .specimen-menu{margin-top:8px;max-width:330px}
+  .specimen-menu[open]{background:#19231ff5;padding:0 8px 8px;max-height:45dvh;overflow:auto;overscroll-behavior:contain}
+  .specimen-tabs{gap:4px}.specimen-tabs a{min-height:44px;font-size:12px;display:flex;align-items:center}
+  .variant-picker{max-width:none;margin-top:8px}.variant-picker select{font-size:16px;padding:8px}
+  .observation{bottom:calc(env(safe-area-inset-bottom) + 76px);left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right))}
+  .observation>.eyebrow,.observation strong,.observation p,.monster-hints,.boss-note{display:none}
+  .monster-page #autonomy,.monster-page #auto-lure,#drag-mode{padding:8px;margin:0;font-size:12px}
+  #motion-status{margin-top:6px;text-shadow:0 1px 3px #000}
+  .motion-panel,.motion-panel:not([open]),.motion-panel[open]{left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:calc(env(safe-area-inset-bottom) + 8px);top:auto;width:auto;max-height:48dvh}
+  .motion-panel>summary{min-height:48px;font-size:14px}.motion-panel summary span{font-size:11px}
+  body:has(.motion-panel[open]) .observation{display:none}
+}
+@media(max-height:520px) and (pointer:coarse){
+  .monster-page .masthead{right:auto;width:210px}.specimen-menu{max-height:50dvh}
+  .motion-panel,.motion-panel:not([open]),.motion-panel[open]{left:auto;width:min(340px,48vw);max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 72px)}
+  .observation{bottom:calc(env(safe-area-inset-bottom) + 12px);right:auto;max-width:48vw}
+}
