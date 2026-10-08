@@ -5,7 +5,7 @@ import { FixedStepper } from '../game/fixed-step.ts';
 import { loadEnvironment } from '../graphics/environment.ts';
 import { loadMonsterCage } from './model.ts';
 import { MonsterBehavior } from './behavior.ts';
-import { createMonsterAppearance } from './appearance.ts';
+import { createMonsterAppearance, updateMonsterAppearance } from './appearance.ts';
 import { createMonsterInteraction } from './interaction.ts';
 import { createSpecimenScene } from './scene.ts';
 import { createTuningPanel, loadMotionSettings } from './tuning-panel.ts';
@@ -34,7 +34,7 @@ export async function startMonster(stage:(message:string)=>void,fail:(reason:unk
   const observer=new ResizeObserver(()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(resize);});
   observer.observe(document.querySelector('#viewport')!);resize();
   for(let i=0;i<100;i++){behavior.step(PHYS.step);body.step(PHYS.step);}
-  body.updateSurface();lure.position.copy(behavior.target);
+  body.updateSurface();updateMonsterAppearance(monster);lure.position.copy(behavior.target);
   stage('Compiling translucent tissue');await renderer.compileAsync(scene,camera);
   stage('Drawing the first frame');renderer.render(scene,camera);
   await (renderer.backend as unknown as {device:GPUDevice}).device.queue.onSubmittedWorkDone();
@@ -49,6 +49,7 @@ export async function startMonster(stage:(message:string)=>void,fail:(reason:unk
       if(document.hidden){clock.reset();return;}
       const steps=clock.advance(dt,()=>{if(!behavior.feeding.locked&&!behavior.targetHeld){autoLure.step(PHYS.step,behavior.target,behavior.center);if(autoLure.enabled)behavior.stimulus=1;}behavior.step(PHYS.step);body.step(PHYS.step);});
       if(steps){if(!body.isFinite())throw new Error('Nih-Dairia physics produced an invalid state');body.updateSurface();}
+      updateMonsterAppearance(monster);
       prey.update(behavior.feeding);
       if(previousState!==behavior.state){previousState=behavior.state;status.textContent=behavior.state;note.textContent=descriptions[behavior.state];}
       input.controls.update();renderer.render(scene,camera);

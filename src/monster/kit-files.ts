@@ -5,11 +5,11 @@ import type { MotionSettings } from './motion-settings.ts';
 export const KIT_SOURCES=[
   'LICENSE',
   'src/monster/portable.ts','src/monster/behavior.ts','src/monster/gait.ts','src/monster/pursuit.ts',
-  'src/monster/motion-settings.ts','src/monster/appearance.ts','src/monster/model.ts','src/monster/auto-lure.ts','src/monster/arena.ts','src/monster/feeding.ts','src/monster/prey.ts','src/monster/skin.ts','src/monster/traction.ts','src/monster/limb-separation.ts','src/monster/cradle.ts','src/monster/variants.ts',
+  'src/monster/motion-settings.ts','src/monster/appearance.ts','src/monster/model.ts','src/monster/auto-lure.ts','src/monster/arena.ts','src/monster/feeding.ts','src/monster/prey.ts','src/monster/skin.ts','src/monster/traction.ts','src/monster/limb-separation.ts','src/monster/cradle.ts','src/monster/variants.ts','src/monster/dorsal.ts',
   'src/physics/soft-body.js','src/physics/soft-body-kernel.js','src/physics/deform-surface.js','src/physics/constants.js','src/physics/cage-model.ts',
   'src/game/fixed-step.ts','src/graphics/renderer.ts','scripts/native/soft-body-kernel.c','scripts/build-kernel.mjs','scripts/build-monster.mjs','scripts/model-cage.mjs',
 ];
-export const KIT_ASSETS=['nih-dairia','brood','reed','crown'].flatMap(id=>[`src/assets/model/${id}.bin`,`src/assets/model/${id}.json`]);
+export const KIT_ASSETS=['nih-dairia','brood','reed','crown','ovum','sept','filament','globulifer'].flatMap(id=>[`src/assets/model/${id}.bin`,`src/assets/model/${id}.json`]);
 export function kitScaffold(settings:MotionSettings,variant:CreatureVariant='nih-dairia'):Record<string,string>{
   return {
     'motion-settings.json':JSON.stringify({version:1,variant,motion:normalizeMotion(settings)},null,2),

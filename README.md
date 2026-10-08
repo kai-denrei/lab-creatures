@@ -6,7 +6,7 @@ An interactive WebGPU creature lab: sensory locomotion, predatory movement, feed
 
 - `/` — creature studies and project credits.
 - `/?specimen=nih-dairia` — the reference six-limbed creature, motion controls and prey experiments.
-- `/?specimen=creature-lab` — four related body plans with independent tuning.
+- `/?specimen=creature-lab` — eight related body plans with independent tuning.
 - `/?specimen=jelly-baby` — the preserved original playground.
 
 Interactive scenes require a WebGPU-capable browser. The landing page loads without a GPU. Each scene loads independently.
@@ -291,6 +291,9 @@ Probe controls now act on the pair of sensory arms: stretch raises their forward
 Reach duration extends to **10×**. **Reach sweep** (0–5×, default 1×) independently controls the two leading arms’ side-to-side ground-search arcs. At zero, their directions stay steady relative to prey. Enabling sweep brings the arms to full extension earlier in the reach phase, leaving time to explore before the torso pulls forward. The arcs have offset timing and slowly varying phases, remain on opposite sides of the target, and diminish near prey. Existing saved/exported settings gain the new default without losing other tuning.
 
 
-Creature Lab now offers four independently generated body plans via its **Body variant** selector: Nih-Dairia (six limbs), Brood (six limbs, larger/thicker abdomen), Reed (four limbs, smaller/thinner abdomen), and Crown (eight limbs). Selecting one loads its own surface and tetrahedral cage, rather than scaling the rendered mesh. Gait, sensory-arm selection, traction and limb separation adapt to the limb count. Motion settings are saved per variant and shared links preserve the choice. Code downloads include all four models and launch the selected variant. Regenerate relatives with `npm run build:variants`; check anatomy, locomotion and feeding with `npm run test:variants`.
+Creature Lab now offers four independently generated body plans via its **Body variant** selector: Nih-Dairia (six limbs), Brood (six limbs, larger/thicker abdomen), Reed (four limbs, smaller/thinner abdomen), and Crown (eight limbs). Selecting one loads its own surface and tetrahedral cage, rather than scaling the rendered mesh. Gait, sensory-arm selection, traction and limb separation adapt to the limb count. Motion settings are saved per variant and shared links preserve the choice. Code downloads include all eight models and launch the selected variant. Regenerate relatives with `npm run build:variants`; check anatomy, locomotion and feeding with `npm run test:variants`.
 
 A **cradling** phase precedes covering. Two front arms approach opposite prey flanks with 180 ms stagger and leave their tips separated; the rear legs brace. A conservative expanded convex prey proxy applies contact impulses through sampled visible-skin barycentric bindings, not just cage centerlines. Both arms must be near prey and the sampled membrane must clear it for 120 ms before covering proceeds. This is bounded sampled contact, not a guarantee against every triangle-level intersection. Cradling and the existing feeding lifecycle apply to all variants.
+
+
+The second family adds **Ovum** (six tentacles with an oblong, swollen abdomen), **Sept** (seven tentacles), **Filament** (a tiny central junction and almost pure tentacles), and **Globulifer** (branched dorsal stalks with four globular tips). Globulifer’s silhouette is inspired by [Bocydium globulare, photographed in National Geographic](https://www.nationalgeographic.com/animals/article/crazy-animals-lady-gaga). Its dorsal growths follow the deformed back’s position and surface normal; they are lightweight visual attachments without independent soft-body dynamics or collisions. The other anatomical differences are built into each variant’s surface and tetrahedral physics cage. No reference photographs are bundled.

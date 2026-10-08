@@ -5,6 +5,10 @@ const models={
   brood:[new URL('../assets/model/brood.bin',import.meta.url),new URL('../assets/model/brood.json',import.meta.url)],
   reed:[new URL('../assets/model/reed.bin',import.meta.url),new URL('../assets/model/reed.json',import.meta.url)],
   crown:[new URL('../assets/model/crown.bin',import.meta.url),new URL('../assets/model/crown.json',import.meta.url)],
+  ovum:[new URL('../assets/model/ovum.bin',import.meta.url),new URL('../assets/model/ovum.json',import.meta.url)],
+  sept:[new URL('../assets/model/sept.bin',import.meta.url),new URL('../assets/model/sept.json',import.meta.url)],
+  filament:[new URL('../assets/model/filament.bin',import.meta.url),new URL('../assets/model/filament.json',import.meta.url)],
+  globulifer:[new URL('../assets/model/globulifer.bin',import.meta.url),new URL('../assets/model/globulifer.json',import.meta.url)],
 };
 export async function loadMonsterCage(variant:keyof typeof models='nih-dairia'){
   const [binary,metadata]=await Promise.all([

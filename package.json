@@ -20,7 +20,7 @@
     "preview": "vite preview",
     "test:probes": "node --experimental-strip-types scripts/verify-probes.mjs",
     "test:variants": "node --experimental-strip-types scripts/verify-variants.mjs",
-    "build:variants": "node scripts/build-monster.mjs brood && node scripts/build-monster.mjs reed && node scripts/build-monster.mjs crown"
+    "build:variants": "node scripts/build-monster.mjs brood && node scripts/build-monster.mjs reed && node scripts/build-monster.mjs crown && node scripts/build-monster.mjs ovum && node scripts/build-monster.mjs sept && node scripts/build-monster.mjs filament && node scripts/build-monster.mjs globulifer"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

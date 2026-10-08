@@ -3,6 +3,10 @@ export const CREATURE_VARIANTS=[
   {id:'brood',name:'Brood · heavy abdomen',limbs:6,description:'Six limbs, a broader abdomen and thicker tissue. A heavy-bodied relative.'},
   {id:'reed',name:'Reed · four limbs',limbs:4,description:'Four limbs and a reduced, thin abdomen. A spare, open silhouette.'},
   {id:'crown',name:'Crown · eight limbs',limbs:8,description:'Eight limbs around a wider core. More support points and a denser silhouette.'},
+  {id:'ovum',name:'Ovum · oblong abdomen',limbs:6,description:'A swollen, elongated ellipsoid abdomen carried by six tentacles.'},
+  {id:'sept',name:'Sept · seven tentacles',limbs:7,description:'Seven evenly spaced tentacles around a compact abdomen. An odd radial body plan.'},
+  {id:'filament',name:'Filament · almost all tentacles',limbs:6,description:'A tiny central junction and six narrow tentacles, with almost no abdomen.'},
+  {id:'globulifer',name:'Globulifer · dorsal globes',limbs:6,description:'Branched stalks and globular tips rise above the back, inspired by Bocydium globulare.'},
 ] as const;
 export type CreatureVariant=typeof CREATURE_VARIANTS[number]['id'];
 export function selectedVariant(){

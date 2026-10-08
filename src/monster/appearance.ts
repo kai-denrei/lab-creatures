@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { positionWorld, uniform, smoothstep } from 'three/tsl';
 import type { FeedingCycle } from './feeding.ts';
+import { createDorsalGrowth } from './dorsal.ts';
 import { tissueColors } from './skin.ts';
 import type { SoftBody } from '../physics/soft-body.js';
 
@@ -10,6 +11,7 @@ export function createMonsterAppearance(body:SoftBody,feeding?:FeedingCycle){
   const material=new THREE.MeshPhysicalNodeMaterial({vertexColors:true,roughness:.26,metalness:0,transmission:.65,thickness:.012,ior:1.37,
     attenuationColor:'#939b72',attenuationDistance:.035,clearcoat:.65,clearcoatRoughness:.16,side:THREE.DoubleSide});
   const mesh=new THREE.Mesh(geometry,material);mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;
+  if(body.cage.dorsal){const dorsal=createDorsalGrowth(body);mesh.add(dorsal.root);mesh.userData.updateAnatomy=dorsal.update;}
   if(feeding){
     const center=uniform(new THREE.Vector3()),coverage=uniform(0);
     const skin= smoothstep(.016,.040,positionWorld.xz.distance(center.xz));
@@ -18,3 +20,5 @@ export function createMonsterAppearance(body:SoftBody,feeding?:FeedingCycle){
   }
   return mesh;
 }
+
+export function updateMonsterAppearance(mesh:THREE.Mesh){mesh.userData.updateAnatomy?.();}
