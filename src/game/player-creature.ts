@@ -1,13 +1,16 @@
 import { Mesh } from 'three/webgpu';
 import { SoftBody } from '../physics/soft-body.js';
 
-export type PlayerCreature='jelly-baby'|'nih-dairia';
+export const PLAYER_CREATURES=[{id:'jelly-baby',name:'Jelly Baby'},{id:'nih-dairia',name:'Nih-Dairia'},{id:'slug',name:'Slug'},{id:'flat-snake',name:'Flat Snake'}] as const;
+export type PlayerCreature=typeof PLAYER_CREATURES[number]['id'];
 export function selectedPlayerCreature():PlayerCreature{
-  return new URLSearchParams(location.search).get('creature')==='nih-dairia'?'nih-dairia':'jelly-baby';
+  const id=new URLSearchParams(location.search).get('creature');
+  return PLAYER_CREATURES.find(creature=>creature.id===id)?.id??'jelly-baby';
 }
 
 /** Appearance, physical controller and camera scale belong to the selected actor. */
 export async function createPlayerCreature(kind:PlayerCreature){
+  if(kind==='slug'||kind==='flat-snake'){const {createCrawler}=await import('../crawlers/actor.ts');return createCrawler(kind);}
   if(kind==='nih-dairia'){
     const [{loadMonsterCage},{createMonsterAppearance,updateMonsterAppearance},{MonsterPlayer}]=await Promise.all([
       import('../monster/model.ts'),import('../monster/appearance.ts'),import('./monster-player.ts'),

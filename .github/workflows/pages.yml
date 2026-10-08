@@ -21,7 +21,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint && npm run typecheck
-      - run: npm run test:monster && npm run test:probes && npm run test:feeding && npm run test:variants && npm run test:mobile && npm run test:player
+      - run: npm run test:monster && npm run test:probes && npm run test:feeding && npm run test:variants && npm run test:mobile && npm run test:player && npm run test:crawlers
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

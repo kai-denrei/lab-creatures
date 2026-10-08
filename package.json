@@ -22,7 +22,9 @@
     "test:variants": "node --experimental-strip-types scripts/verify-variants.mjs",
     "build:variants": "node scripts/build-monster.mjs brood && node scripts/build-monster.mjs reed && node scripts/build-monster.mjs crown && node scripts/build-monster.mjs ovum && node scripts/build-monster.mjs sept && node scripts/build-monster.mjs filament && node scripts/build-monster.mjs globulifer",
     "test:mobile": "node --experimental-strip-types scripts/verify-mobile-input.mjs",
-    "test:player": "node --experimental-strip-types scripts/verify-player-monster.mjs"
+    "test:player": "node --experimental-strip-types scripts/verify-player-monster.mjs",
+    "build:crawlers": "node scripts/build-crawlers.mjs",
+    "test:crawlers": "node --experimental-strip-types scripts/verify-crawlers.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

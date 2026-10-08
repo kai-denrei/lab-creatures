@@ -315,3 +315,13 @@ Open the Jelly Baby playground and select **Nih-Dairia** from **Play as**, or op
 WASD / arrow keys and the mobile D-pad steer relative to the camera. Nih-Dairia uses its own reach/pull gait and planted-foot traction; releasing movement brakes it. Space / the touch action makes it brace. Feeding and autonomous prey pursuit are disabled in this player mode. The Creature Lab retains its separate hunting behavior and tuning. Reset / R restores the selected creature.
 
 `npm run test:player` checks four-direction travel, key-release braking, travel beyond the lab arena, bracing, grab handoff and reset with the actual soft-body solver.
+
+The next anatomy and locomotion experiments are tracked in [the creature roadmap](ROADMAP.md).
+
+## Crawler prototypes
+
+The playground's **Play as** selector also includes **Slug** (`?specimen=jelly-baby&creature=slug`) and **Flat Snake** (`?specimen=jelly-baby&creature=flat-snake`). Both use the shared soft-body solver, wooden table, lighting and camera-relative WASD/touch controls. Space contracts/braces; dragging hands control to the physical grab system.
+
+Slug alternates front/rear underside grip while extending and gathering. Flat Snake sends a lateral wave along its flattened body, gripping around alternating bend extrema. These are force-driven locomotion approximations with grounded propulsion, not complete biological simulations. Tight self-coiling and feeding are deferred; see [ROADMAP.md](ROADMAP.md).
+
+`npm run build:crawlers` regenerates both closed meshes and tetrahedral cages. `npm run test:crawlers` validates geometry, volume, physical deformation, forward/turning movement, lateral drift, contact, release braking, grab recovery, brace and reset. Visual motion quality remains a manual review.

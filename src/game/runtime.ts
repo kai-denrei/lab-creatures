@@ -8,7 +8,7 @@ import { JellySound } from './sound.ts';
 import { createRenderer, resizeView } from '../graphics/renderer.ts';
 import { OpticalTransport } from '../graphics/transport.ts';
 import { createComposite } from '../graphics/composite.ts';
-import { createPlayerCreature, selectedPlayerCreature } from './player-creature.ts';
+import { createPlayerCreature, selectedPlayerCreature, PLAYER_CREATURES } from './player-creature.ts';
 import { FixedStepper } from './fixed-step.ts';
 
 export async function startGame(stage:(s:string)=>void,fail:(e:unknown)=>void) {
@@ -22,10 +22,10 @@ export async function startGame(stage:(s:string)=>void,fail:(e:unknown)=>void) {
   stage('Reading the light');
   const environment=await loadEnvironment(renderer,scene);
   const kind=selectedPlayerCreature();
-  stage(kind==='nih-dairia'?'Growing the tentacles':'Making a little jelly');
+  stage(`Growing ${PLAYER_CREATURES.find(item=>item.id===kind)!.name}`);
   const actor=await createPlayerCreature(kind),{body,rig}=actor;scene.add(actor.group);
   camera.position.multiplyScalar(actor.cameraScale);
-  renderer.domElement.setAttribute('aria-label',`${kind==='nih-dairia'?'Nih-Dairia':'Jelly Baby'}. WASD or arrow keys to walk. Space to ${kind==='nih-dairia'?'brace':'hop'}. Drag the creature to stretch; drag the table to orbit.`);
+  renderer.domElement.setAttribute('aria-label',`${PLAYER_CREATURES.find(item=>item.id===kind)!.name}. WASD or arrow keys to walk. Space to ${kind==='jelly-baby'?'hop':'brace'}. Drag the creature to stretch; drag the table to orbit.`);
   const optics=new RefractiveLightField(body.cage.opticalSurface,environment.incoming,actor.absorption);
   const table=await makeTable(optics,environment);scene.add(table.mesh);
   const composite=createComposite(renderer,scene,camera);
