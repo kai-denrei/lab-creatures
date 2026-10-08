@@ -1,5 +1,5 @@
 {
-  "name": "jelly_baby",
+  "name": "lab-creatures",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,12 +8,17 @@
     "lint": "eslint src scripts eslint.config.js",
     "typecheck": "tsc --noEmit",
     "build:model": "node scripts/build-model.mjs",
+    "build:monster": "node scripts/build-monster.mjs",
+    "export:monster": "node --experimental-strip-types scripts/export-monster.mjs",
     "build:kernel": "node scripts/build-kernel.mjs",
     "test:physics": "node --experimental-strip-types scripts/verify-physics.mjs",
+    "test:monster": "node --experimental-strip-types scripts/verify-monster.mjs",
+    "test:feeding": "node --experimental-strip-types scripts/verify-feeding.mjs",
     "test:performance": "node --experimental-strip-types scripts/verify-performance.mjs",
     "benchmark": "node --experimental-strip-types scripts/benchmark.mjs",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:probes": "node --experimental-strip-types scripts/verify-probes.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
