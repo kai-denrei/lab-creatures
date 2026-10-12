@@ -24,8 +24,8 @@ export async function startMonster(stage:(message:string)=>void,fail:(reason:unk
   const variant=selectedVariant();
   stage(`Growing ${variant.limbs} limbs`);
   const body=new SoftBody(await loadMonsterCage(variant.id)),behavior=new MonsterBehavior(body,loadMotionSettings());
-  const tuning=createTuningPanel(behavior.settings);
   const monster=createMonsterAppearance(body,behavior.feeding);scene.add(monster);
+  const tuning=createTuningPanel(behavior.settings,monster);
   const autoLure=new AutoLure();
   const input=createMonsterInteraction(camera,renderer.domElement,lure,monster,behavior,autoLure);
   const clock=new FixedStepper(PHYS.step);

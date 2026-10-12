@@ -1,0 +1,47 @@
+import type { Object3D } from 'three/webgpu';
+import { createZip } from '../monster/zip.ts';
+import { download, settingsDocument } from '../sharing/settings.ts';
+import { meshSnapshot } from '../sharing/mesh.ts';
+import { PREDATOR_CONTROLS, type PredatorSettings } from './settings.ts';
+import type { LabVariant } from './variants.ts';
+const sources=import.meta.glob<string>(['./gait.ts','./veil-gait.ts','./model.ts','./oculus.ts','./leg-web.ts','./isopod.ts','./membrane.ts','./instinct.ts','./settings.ts','./variants.ts','../../LICENSE'],{query:'?raw',import:'default'});
+export async function exportPredator(variant:LabVariant,settings:PredatorSettings,group:Object3D){
+  // Snapshot is taken before awaiting source reads, so the mesh represents this click.
+  const snapshot=meshSnapshot(group),encoder=new TextEncoder();
+  const files:{name:string;data:Uint8Array}[]=[];
+  const add=(name:string,text:string)=>files.push({name,data:encoder.encode(text)});
+  for(const [path,read] of Object.entries(sources))add(path.endsWith('LICENSE')?'LICENSE':`src/${path.slice(2)}`,await read());
+  add('settings.json',JSON.stringify(settingsDocument('predator',variant,PREDATOR_CONTROLS,settings),null,2));
+  add('package.json',JSON.stringify({name:`${variant}-creature`,private:true,type:'module',scripts:{dev:'vite --host 127.0.0.1',build:'vite build'},dependencies:{three:'^0.185.0'},devDependencies:{vite:'^8.2.2'}},null,2));
+  add('index.html','<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Creature study</title><style>body{margin:0;background:#e8e4d8}canvas{display:block}p{position:fixed;left:20px;top:0;font:14px sans-serif}</style></head><body><p>Drag to orbit · Click the ground to move the lure</p><script type="module" src="/src/demo.ts"></script></body></html>');
+  add('src/demo.ts',`import * as THREE from 'three/webgpu';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {ArthropodGait} from './gait.ts';
+import {VeilGait} from './veil-gait.ts';
+import {createArthropod} from './model.ts';
+import {createOculus} from './oculus.ts';
+import {createIsopod} from './isopod.ts';
+import {createMembrane} from './membrane.ts';
+import {PredatorInstinct} from './instinct.ts';
+import preset from '../settings.json';
+const breed=preset.specimen;
+const gait=breed==='veil'?new VeilGait():new ArthropodGait(breed as 'oculus');
+const creature=breed==='veil'?createMembrane():(breed==='oculus'||breed==='monoculus')?createOculus(breed):breed==='isopod'?createIsopod():createArthropod();
+const settings=preset.values,instinct=new PredatorInstinct(gait,settings);
+const renderer=new THREE.WebGPURenderer({antialias:true});await renderer.init();document.body.append(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#e8e4d8');scene.add(creature.group,new THREE.HemisphereLight(0xffffff,0x565541,3));
+const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(1,2,1);scene.add(light);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(1.1,96),new THREE.MeshStandardNodeMaterial({color:'#bfc2ad',roughness:.9}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const lure=new THREE.Mesh(new THREE.SphereGeometry(.012),new THREE.MeshStandardNodeMaterial({color:'#b74430'}));lure.position.set(.1,.012,.17);scene.add(lure);
+const camera=new THREE.PerspectiveCamera(36,1,.001,10);camera.position.set(.6,.65,.8);const orbit=new OrbitControls(camera,renderer.domElement);orbit.target.set(0,.04,0);orbit.update();
+const resize=()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();};addEventListener('resize',resize);resize();
+const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();let down=new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown',e=>down.set(e.clientX,e.clientY));
+renderer.domElement.addEventListener('pointerup',e=>{if(down.distanceTo(new THREE.Vector2(e.clientX,e.clientY))>5)return;ray.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);if(ray.ray.intersectPlane(plane,hit)){hit.clampLength(0,.76);lure.position.set(hit.x,.012,hit.z);}});
+let previous=performance.now(),accumulator=0;
+renderer.setAnimationLoop(now=>{accumulator+=Math.min(.05,(now-previous)/1000);previous=now;while(accumulator>=1/120){instinct.step(1/120,lure.position);gait.step(1/120);accumulator-=1/120;}creature.update(gait);renderer.render(scene,camera);});
+`);
+  add('README.md',`# ${variant} creature kit\n\nRun npm install and npm run dev with Node 22.12+; open the printed localhost URL in a WebGPU-capable browser. npm run build makes a standalone site.\n\ncreature.glb is the current visible pose in meters, Y up. Import it into Blender, Unity, Godot or other glTF tools. It is a static mesh snapshot, without a skeleton or animation. Shader appearance is approximated with standard PBR materials.\n\nThe src folder contains the procedural geometry, joint/elastic gait and predatory state machine. demo.ts shows integration: create a gait and model, pass settings to PredatorInstinct, step instinct and gait at 1/120 s, then call creature.update(gait). Lure positions use meters. The settings document includes units; mm controls are converted by the controller. Changing settings live updates the next simulation step.\n\nsettings.json uses lab-creatures/settings version 1 and can be pasted or imported in the source lab. The specimen field identifies the selected body plan; predator-family settings can also be applied to sibling specimens.\n\nGPL-3.0; see LICENSE.\n`);
+  files.push({name:'creature.glb',data:new Uint8Array(await snapshot)});
+  const zip=createZip(files);download(zip as BlobPart,`${variant}-creature.zip`,'application/zip');
+}

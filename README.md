@@ -7,9 +7,22 @@ An interactive WebGPU creature lab: sensory locomotion, predatory movement, feed
 - `/` — creature studies and project credits.
 - `/?specimen=nih-dairia` — the reference six-limbed creature, motion controls and prey experiments.
 - `/?specimen=creature-lab` — eight related body plans with independent tuning.
+- `/?specimen=arthropod-lab` — Aculis, Oculus, Giant Isopod and Veil, with a shared predator lab.
 - `/?specimen=jelly-baby` — the preserved original playground.
 
 Interactive scenes require a WebGPU-capable browser. The landing page loads without a GPU. Each scene loads independently.
+
+## Arthropod and membrane studies
+
+The **Specimen** selector now includes **Aculis**, **Oculus** (`&breed=oculus`), **Giant Isopod** (`&breed=isopod`) and **Veil** (`&breed=veil`). The isopod has a broad armored silhouette, fourteen articulated walking legs, paired long and short antennae and a tail fan. Its anatomy is based on the [Aquarium of the Pacific's giant isopod reference](https://www.aquariumofpacific.org/onlinelearningcenter/species/giant_isopod/P1). Veil is an original form based on the supplied membrane reference: one closed, flat, eyeless sheet with twelve elastic sectors and webbing continuing all the way to the tips. There is no dome and no bare tentacle-like distal section. Each tip extends and retracts on its own seeded, irregular schedule; the center creeps behind stretched edges before accelerating into bursts. It uses a dedicated procedural elastic-rim controller rather than the arthropods’ alternating rigid-link gait. The rim stays close to the floor, with only small individual curls. Oculus has one eye forming its entire head, a single antenna and a greatly reduced trunk on longer legs. All four models share the Instinct/Lure and Walking modes.
+
+This lab's arena is **2.2 m across**, twice the previous diameter (four times the area), with enlarged travel, manual lure and camera bounds. Other labs keep their original table. All fifteen defaults are now the previous slider maxima, and every upper bound is doubled. For example, pace defaults to 1.8× with a 3.6× maximum; lowering defaults to 38 mm with a 76 mm maximum. Ground clearance and joint reach constrain the actual pose at extreme values. Revision-2 settings start with these new defaults and persist separately for each specimen, leaving the old Aculis settings record intact. **Restore defaults** returns to the previous-max values.
+
+**Aculis** has six long jointed legs (coxa, trochanter, femur, tibia, three-part tarsi and paired pretarsal claws), seven abdominal plates, compound eyes and moving antennae. Open **Arthropod Lab** from the specimen tabs or homepage. The default **Instinct & lure** mode lets you drag the red lure or tap the table to place it. **Auto lure** follows a figure-eight path; holding the lure pauses that path until release. **Instinct** toggles behavior, and **Startle** triggers a fearful recoil. Drag elsewhere to orbit and scroll/pinch to zoom. **Walking study** retains the original tap-to-guide controls, and **Anatomy colors** identifies leg sections.
+
+The predator notices movement, hesitates or backs away, stalks, sometimes feints sideways, lowers its body and abdomen, then rushes and recovers. Rushes commit to a last-sighted position so moving the lure can cause a miss. Sudden close lure movement can startle it. Seeded choices vary timing and lateral motions without frame-by-frame random jitter. **Specimen defaults**, **Ambush**, **Wary** and **Feral** presets accompany controls for notice radius, fear, hesitation, aggression, unpredictability, rush speed/duration, recovery, body lowering, abdomen tuck, overall pace, turn speed, foot lift and auto-lure speed/range. Tuning persists separately for each specimen; **Reset** retains tuning and the Instinct/Auto lure preferences, while **Restore defaults** resets tuning.
+
+This is a procedural articulated rig with fixed-length femur/tibia links, inverse-kinematics knees and alternating tripod support. Torso commands are limited by leg reach, while the abdomen and antennae respond to behavioral state. It does not yet use the soft-body solver, physical joint dynamics, grabbing or feeding. The lure remains visible for repeated encounters. `npm run test:arthropods` checks state progression, rush/stalk speed contrast, body lowering, zero aggression/fear, rigid segment lengths, planted-foot stability, foot clearance, arena bounds, pause and reset across presets and extreme settings.
 
 ## Inspiration and license
 
@@ -181,8 +194,8 @@ sampled at the next step so a slider does not teleport a planted foot. The panel
 is collapsible and starts closed on smaller screens.
 
 Settings persist locally in the browser. **Reset** restarts the creature and keeps
-the tuning; **Restore defaults** resets the sliders. **Export settings** downloads
-a versioned JSON file; **Import settings** restores a saved experiment. Incoming
+the tuning; **Restore defaults** resets the sliders. **Export JSON** downloads
+a versioned JSON file; **Import JSON** restores a saved experiment. Incoming
 values are validated and bounded to the slider ranges. Shared settings live in
 `src/monster/motion-settings.ts`, separate from the UI for later Stalheart reuse.
 Numerical checks exercise minimum, maximum and fast-footwork combinations, plus
@@ -199,10 +212,10 @@ stretch updated to the new defaults. Other tuned values and old drafts are retai
 
 ### Sharing with another project
 
-- **Copy settings** copies versioned JSON; **Copy settings link** embeds the
+- **Copy all** copies versioned JSON; **Copy settings link** embeds the
   values in a link to this experiment (the receiving device must be able to reach
   the same host). Opening that link applies and saves the shared values.
-- **Download code + settings** produces a ZIP of the current settings, creature
+- **Export creature ZIP** produces a ZIP of the current settings, creature
   source, model, physics solver, native source and rebuild scripts, plus a Vite
   demo and integration README. It does not require this checkout to run.
 - `npm run export:monster` writes the same kit with the current defaults to
@@ -325,3 +338,39 @@ The playground's **Play as** selector also includes **Slug** (`?specimen=jelly-b
 Slug alternates front/rear underside grip while extending and gathering. Flat Snake sends a lateral wave along its flattened body, gripping around alternating bend extrema. These are force-driven locomotion approximations with grounded propulsion, not complete biological simulations. Tight self-coiling and feeding are deferred; see [ROADMAP.md](ROADMAP.md).
 
 `npm run build:crawlers` regenerates both closed meshes and tetrahedral cages. `npm run test:crawlers` validates geometry, volume, physical deformation, forward/turning movement, lateral drift, contact, release braking, grab recovery, brace and reset. Visual motion quality remains a manual review.
+
+### Specimen library and sharing
+
+The landing page lists all 17 individuals with rendered model thumbnails, family filters and name/trait search. Each card opens the selected specimen directly. Thumbnails are generated from the actual models with `src/catalog/thumbnail.ts` (development utility).
+
+Oculus has one spherical compound eye covering its entire head and one antenna. Its defaults use every slider's current maximum except rush duration **1.5 s**, recovery pause **3 s**, and foot lift **10 mm**. Oculus uses a new storage generation so these defaults take effect; subsequent custom tuning remains saved independently of other specimens.
+
+All soft-body and predator tuning panels share **Copy group / Paste group**, **Copy all / Paste settings**, JSON import/export, and **Export creature ZIP**. A group paste only changes that group. Imports validate the full payload before applying values and clamp numbers to the receiving controls' limits. Soft-body and predator settings are separate compatible families; predator settings may be shared between Aculis, Oculus, Monoculus, Isopod and Veil. Older Nih-Dairia motion JSON files remain importable.
+
+The common JSON format is `lab-creatures/settings`, version 1, with `family`, `specimen`, `group`, `units` and `values`. Units describe stored values: soft-body lengths/durations use meters/seconds; predator controls use the declared millimeters/seconds/multipliers. Clipboard failures expose selectable JSON for manual copying; paste uses an editable text area, so clipboard-read permission is unnecessary.
+
+Creature ZIPs contain a **static current-pose GLB** (meters, Y up, standard PBR approximation), selected settings, procedural source, license and a runnable Vite/Three.js demo. The GLB has no rig or baked animation; the included source supplies the creature's motion and instinct. The soft-body kit retains its physics models and solver. Run `npm install` and `npm run dev` inside an extracted kit. `npm run test:settings` checks settings interchange and Oculus defaults.
+
+Monoculus is an independent Oculus relative with a compound eye at one-quarter the diameter, a tiny abdomen in place of the trunk, and a thin translucent membrane spanning all six legs. The sheet deforms with the articulated joints. It starts with Oculus defaults but stores its tuning separately. Oculus remains unchanged.
+
+
+### Cutis-Maku — membrane swarm
+
+Open `?specimen=cutis-maku` for the new independent membrane lab. A slow cap extension fixes a foothold, then the body follows a delayed, per-vertex Bézier transfer through the anchor. The rear catches up abruptly; a damped recoil reforms the body. Resting silhouettes are irregular droplets, with a projected 4D tesseract used as a temporary fold attractor. Skin has rest-space warped Voronoi veins, stretch-dependent translucency, a nested dark core and directional vein pulses.
+
+The lab provides solo, 12-, 100- and desktop 300-creature views, a draggable/automatic lure, Patient predator/Feral surge/Slow drifting presets, live body/transfer/surface/swarm tuning, phase scrub, state colors, stretch heatmap, projected tesseract and forced fold geometry. All groups use the same copy/paste and JSON interface as the other labs. The creature ZIP includes GLSL, TypeScript, settings, license and a standalone lil-gui demo. Shader deformation is exported as source, without a baked GLB or rig.
+
+This specimen uses the spec's **WebGL2 + instanced GLSL** path; existing specimens retain their WebGPU runtime. A closed spherical mesh joins three densely sampled cap patches. Polar rings concentrate detail in each reaching cap; matching core and membrane meshes follow the same curved centerline, preventing coarse core triangles from cutting across the sweep. Each tip flares into a rounded suction cup with distinct upper and lower surfaces and a thick rim. Each LOD has one membrane and one core InstancedMesh. Near membranes use back/front passes; far membranes skip the back pass and fine vein detail. Instance attribute buffers are reused; CPU simulation handles steering, phases and locked anchors rather than vertex deformation. The default radius is 0.2 m in a larger arena.
+
+`src/cutis/creature` owns geometry/material/GLSL, `src/cutis/swarm` owns configuration and behavior, and `src/cutis/demo/index.html` is the development standalone demo. Exported kits run from their root `index.html`. `getState`, `getAnchor` and `getStretchSegment` expose weak-point and transfer-window information. Optional bridging, severing/splitting and game collision enforcement are not implemented.
+
+`npm run test:cutis` checks timing, locked anchors/headings, hop commits, buffer reuse, state coverage, desynchronization, freeze/scrub, gameplay hooks and settings roundtrips for 1/100/300 creatures. The coil warning lasts at least 120 ms and EXTEND:TRANSFER duration is 45:23. Before the denser matched-shell geometry update, automated Chrome checks observed approximately 60 fps for 100 and 300 creatures at the default swarm framing on this development machine, and 60 fps in a 390×844 mobile viewport. This is not a real mid-range-phone benchmark; device performance remains to be measured on target hardware.
+
+
+Cutis-Maku defaults now use the selected Hunt/Transfer/Body values: cycle 4 s, urgency 2, reach 15 radii, cap 10°, sweep 0.85 radii, 3 appendages, seeking frequency 1 cycle, transfer acceleration 1, neck 0.5, rear delay 0.25, fold 0.9, recoil 0.5, radius 0.2 m, asymmetry 0.2, breathing 1.5 Hz, resting structure 0.25, vein pulse speed 2, vein width 0.1 and separation 2. Storage generation v4 activates these defaults while retaining older drafts. Reach extends to 20 radii and cycles to 10 s; shape, timing and swarm limits are also widened. New Seeking sweep/frequency controls make the tip probe laterally and briefly retract before damping to a fixed foothold. Transfer acceleration controls a slow-start power curve, used by both the shader and the CPU position estimate. The anchor remains fixed during attachment and transfer.
+
+Color scheme presets preserve behavior values: Original membrane, Green/moss, Yellow/amber, Blue/glacial, Purple/dusk, White/porcelain and Black/white veins. The inner core remains dark in the black scheme. Presets, controls and the new motion are included in the standalone export. Older Hunt/Transfer settings can still be pasted; missing newly added controls retain their current values.
+
+Cutis-Maku Hunt → Seeking appendages selects 1, 2 or 3 probes (default 3). Each probe has its own direction, reach and sweep phase. With multiple probes, the cup nearest the current prey wins when EXTEND ends; the other probes retract and transfer commits the winning cup. The anchor stays locked after selection. Changing the appendage count restarts a live search, or updates a frozen phase study in place. The count travels with copied settings and creature exports; older settings retain the current count. `getSeekingAnchors(i)` exposes the candidate cups to host programs.
+
+During transfer, the winning cup retains its settled cross-section instead of collapsing into the point used to funnel traveling tissue. Its rim expands and thickens with incoming mass, then merges into the destination body as transfer finishes.

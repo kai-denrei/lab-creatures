@@ -24,7 +24,10 @@
     "test:mobile": "node --experimental-strip-types scripts/verify-mobile-input.mjs",
     "test:player": "node --experimental-strip-types scripts/verify-player-monster.mjs",
     "build:crawlers": "node scripts/build-crawlers.mjs",
-    "test:crawlers": "node --experimental-strip-types scripts/verify-crawlers.mjs"
+    "test:crawlers": "node --experimental-strip-types scripts/verify-crawlers.mjs",
+    "test:arthropods": "node --experimental-strip-types scripts/verify-arthropods.mjs",
+    "test:settings": "node --experimental-strip-types scripts/verify-settings.mjs",
+    "test:cutis": "node --experimental-strip-types scripts/verify-cutis.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

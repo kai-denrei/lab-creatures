@@ -1,0 +1,56 @@
+import * as THREE from 'three';
+import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { createMembraneMaterial,updateMaterial } from './material.ts';
+import type { CutisSwarm } from '../swarm/controller.ts';
+const sizes={iOffset:3,iHeading:3,iAnchor:3,iState:4,iParams:4,iProbe0:3,iProbe1:3,iProbe2:3};
+export function createSwarmGeometry(swarm:CutisSwarm){
+  const group=new THREE.Group();group.name='Cutis-Maku';
+  const levels=[false,true].map(low=>{
+    // Ring-aligned caps keep cross-sections coherent even on long curved stalks.
+    // A spherical convex hull joins all three patches into one closed membrane.
+    const caps=[-1.2,0,1.2].map(a=>new THREE.Vector3(Math.sin(a),0,Math.cos(a)));
+    const points:THREE.Vector3[]=[],base=new THREE.SphereGeometry(1,low?16:40,low?12:24);
+    const positions=base.getAttribute('position'),boundary=.59;
+    for(let i=0;i<positions.count;i++){
+      const n=new THREE.Vector3().fromBufferAttribute(positions,i);
+      if(caps.every(axis=>n.dot(axis)<Math.cos(boundary)))points.push(n);
+    }
+    base.dispose();
+    const rings=low?20:48,sides=low?16:40;
+    for(const axis of caps){
+      const tangent=new THREE.Vector3(axis.z,0,-axis.x);
+      points.push(axis.clone());
+      for(let j=1;j<=rings;j++){
+        const theta=boundary*Math.pow(j/rings,1.35);
+        for(let k=0;k<sides;k++){
+          const a=k/sides*Math.PI*2;
+          points.push(axis.clone().multiplyScalar(Math.cos(theta)).addScaledVector(tangent,Math.sin(theta)*Math.cos(a)).add(new THREE.Vector3(0,Math.sin(theta)*Math.sin(a),0)));
+        }
+      }
+    }
+    const hull=new ConvexGeometry(points);hull.deleteAttribute('normal');
+    const geometry=mergeVertices(hull);hull.dispose();
+    const coreGeometry=geometry.clone();
+    const attributes=Object.fromEntries(Object.entries(sizes).map(([name,size])=>[name,new THREE.InstancedBufferAttribute(new Float32Array(swarm.capacity*size),size).setUsage(THREE.DynamicDrawUsage)]));
+    for(const [name,attribute] of Object.entries(attributes)){geometry.setAttribute(name,attribute);coreGeometry.setAttribute(name,attribute);}
+    const material=createMembraneMaterial(swarm.config,false,low),coreMaterial=createMembraneMaterial(swarm.config,true,true);
+    const membrane=new THREE.InstancedMesh(geometry,material,swarm.capacity),core=new THREE.InstancedMesh(coreGeometry,coreMaterial,swarm.capacity);
+    membrane.frustumCulled=core.frustumCulled=false;membrane.renderOrder=2;core.renderOrder=1;group.add(core,membrane);
+    return {geometry,coreGeometry,material,coreMaterial,membrane,core,attributes,count:0};
+  });
+  const position=new THREE.Vector3(),state=new Float32Array(swarm.capacity*4);
+  function update(camera:THREE.PerspectiveCamera,height:number,debug=0,force=false){
+    levels.forEach(l=>l.count=0);
+    for(let i=0;i<swarm.count;i++){state[i*4]=swarm.phase[i];state[i*4+1]=swarm.seed[i];state[i*4+2]=swarm.scale[i];state[i*4+3]=swarm.probeCount[i]*4+swarm.chosenProbe[i];}
+    const source:Record<string,Float32Array>={iOffset:swarm.offset,iHeading:swarm.heading,iAnchor:swarm.anchor,iState:state,iParams:swarm.params,iProbe0:swarm.probe0,iProbe1:swarm.probe1,iProbe2:swarm.probe2};
+    for(let i=0;i<swarm.count;i++){
+      position.set(swarm.offset[i*3],swarm.config.r0,swarm.offset[i*3+2]);
+      const pixels=swarm.config.r0*swarm.scale[i]*height/(2*Math.tan(camera.fov*Math.PI/360)*Math.max(.1,camera.position.distanceTo(position)));
+      const level=levels[pixels<26?1:0],index=level.count++;
+      for(const [name,size] of Object.entries(sizes)){const array=level.attributes[name].array;for(let k=0;k<size;k++)array[index*size+k]=source[name][i*size+k];}
+    }
+    for(const l of levels){l.membrane.count=l.core.count=l.count;l.membrane.visible=l.core.visible=l.count>0;for(const a of Object.values(l.attributes)){a.clearUpdateRanges();a.addUpdateRange(0,l.count*a.itemSize);a.needsUpdate=true;}updateMaterial(l.material,swarm.config,swarm.time,debug,force);updateMaterial(l.coreMaterial,swarm.config,swarm.time,debug,force);}
+  }
+  return {group,levels,update,dispose:()=>levels.forEach(l=>{l.geometry.dispose();l.coreGeometry.dispose();l.material.dispose();l.coreMaterial.dispose();l.membrane.dispose();l.core.dispose();})};
+}
