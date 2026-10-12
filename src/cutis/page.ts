@@ -12,6 +12,7 @@ document.querySelector('#app')!.innerHTML=`
 <nav class="actions"><a class="back-link" href="./">← Specimens</a><button id="reset">Reset</button></nav><button id="scene-view" aria-pressed="false">Hide controls</button>
 <aside class="observation"><span class="eyebrow">OBSERVED BEHAVIOR</span><strong id="creature-state" role="status">Coiling</strong><p id="state-note">A pulse under the skin. A brief warning.</p><span id="cutis-stats"></span></aside>
 <details class="motion-panel" ${mobile?'':'open'}><summary>Instinct & membrane <span>Cutis-Maku</span></summary><div class="motion-panel-body">
+<button id="cutis-multicolored" aria-pressed="false" disabled title="Available for packs and swarms">Multicolored creatures off</button>
 <label class="lab-select">Observation<select id="cutis-count"><option value="1">Single specimen</option><option value="12">Hunting pack · 12</option><option value="100">Swarm · 100</option>${mobile?'':'<option value="300">Swarm · 300</option>'}</select></label>
 <p class="tuning-intro">Drag the red lure or tap the ground. Drag elsewhere to orbit. Heading locks before each reach.</p>
 <div class="arthropod-buttons"><button id="cutis-freeze" aria-pressed="false">Freeze motion</button><button id="cutis-auto" aria-pressed="true">Auto lure on</button><button id="cutis-move" aria-pressed="false">Move lure</button></div>
@@ -39,7 +40,9 @@ try{
   const scrub=(value:number)=>{game.swarm.scrub(value);freezeUI();};phase.addEventListener('input',()=>scrub(phase.valueAsNumber),{signal});
   for(const button of panel.querySelectorAll<HTMLButtonElement>('[data-phase]'))button.addEventListener('click',()=>scrub(Number(button.dataset.phase)),{signal});
   freeze.addEventListener('click',()=>{game.swarm.frozen=!game.swarm.frozen;freezeUI();},{signal});
-  document.querySelector<HTMLSelectElement>('#cutis-count')!.addEventListener('change',event=>{game.setCount(Number((event.target as HTMLSelectElement).value));},{signal});
+  const multicolored=document.querySelector<HTMLButtonElement>('#cutis-multicolored')!;
+  multicolored.addEventListener('click',()=>{const on=multicolored.getAttribute('aria-pressed')!=='true';multicolored.setAttribute('aria-pressed',String(on));multicolored.textContent=`Multicolored creatures ${on?'on':'off'}`;game.setMulticolored(on);},{signal});
+  document.querySelector<HTMLSelectElement>('#cutis-count')!.addEventListener('change',event=>{const count=Number((event.target as HTMLSelectElement).value);game.setCount(count);multicolored.disabled=count===1;},{signal});
   for(const [id,method,onText,offText] of [['cutis-auto',(on:boolean)=>game.setAuto(on),'Auto lure on','Auto lure off'],['cutis-move',(on:boolean)=>game.setMove(on),'Placing lure','Move lure']] as const)document.querySelector<HTMLButtonElement>(`#${id}`)!.addEventListener('click',event=>{const button=event.currentTarget as HTMLButtonElement,on=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(on));button.textContent=on?onText:offText;method(on);},{signal});
   document.querySelector<HTMLSelectElement>('#cutis-debug')!.addEventListener('change',event=>game.setDebug(Number((event.target as HTMLSelectElement).value)),{signal});
   document.querySelector<HTMLInputElement>('#cutis-cage')!.addEventListener('change',event=>game.setCage((event.target as HTMLInputElement).checked),{signal});document.querySelector<HTMLInputElement>('#cutis-cube')!.addEventListener('change',event=>game.setForce((event.target as HTMLInputElement).checked),{signal});

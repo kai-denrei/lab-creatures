@@ -40,7 +40,7 @@ export function createSwarmGeometry(swarm:CutisSwarm){
     return {geometry,coreGeometry,material,coreMaterial,membrane,core,attributes,count:0};
   });
   const position=new THREE.Vector3(),state=new Float32Array(swarm.capacity*4);
-  function update(camera:THREE.PerspectiveCamera,height:number,debug=0,force=false){
+  function update(camera:THREE.PerspectiveCamera,height:number,debug=0,force=false,multicolored=false){
     levels.forEach(l=>l.count=0);
     for(let i=0;i<swarm.count;i++){state[i*4]=swarm.phase[i];state[i*4+1]=swarm.seed[i];state[i*4+2]=swarm.scale[i];state[i*4+3]=swarm.probeCount[i]*4+swarm.chosenProbe[i];}
     const source:Record<string,Float32Array>={iOffset:swarm.offset,iHeading:swarm.heading,iAnchor:swarm.anchor,iState:state,iParams:swarm.params,iProbe0:swarm.probe0,iProbe1:swarm.probe1,iProbe2:swarm.probe2};
@@ -50,7 +50,7 @@ export function createSwarmGeometry(swarm:CutisSwarm){
       const level=levels[pixels<26?1:0],index=level.count++;
       for(const [name,size] of Object.entries(sizes)){const array=level.attributes[name].array;for(let k=0;k<size;k++)array[index*size+k]=source[name][i*size+k];}
     }
-    for(const l of levels){l.membrane.count=l.core.count=l.count;l.membrane.visible=l.core.visible=l.count>0;for(const a of Object.values(l.attributes)){a.clearUpdateRanges();a.addUpdateRange(0,l.count*a.itemSize);a.needsUpdate=true;}updateMaterial(l.material,swarm.config,swarm.time,debug,force);updateMaterial(l.coreMaterial,swarm.config,swarm.time,debug,force);}
+    for(const l of levels){l.membrane.count=l.core.count=l.count;l.membrane.visible=l.core.visible=l.count>0;for(const a of Object.values(l.attributes)){a.clearUpdateRanges();a.addUpdateRange(0,l.count*a.itemSize);a.needsUpdate=true;}updateMaterial(l.material,swarm.config,swarm.time,debug,force,multicolored);updateMaterial(l.coreMaterial,swarm.config,swarm.time,debug,force,multicolored);}
   }
   return {group,levels,update,dispose:()=>levels.forEach(l=>{l.geometry.dispose();l.coreGeometry.dispose();l.material.dispose();l.coreMaterial.dispose();l.membrane.dispose();l.core.dispose();})};
 }
