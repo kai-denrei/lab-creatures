@@ -414,3 +414,17 @@ Locomotion controls expose roll duration (default 2.4 s), landing recovery (0.8 
 Controller tests verify extra travel distance, launch lift, recoil and landing commit. `verifyContainment(false,true)` / `verifyContainment(true,true)` run the near/far GPU checks for Gorogoro through 3,200 sampled poses.
 
 Gorogoro defaults to a 10-second hunt cycle, a slower 2.4-second roll and 0.8-second landing recovery. Its higher camera tracks the solo pursuit; the automatic lure steers continuously away from bodies and projected landings with bounded acceleration, without repositioning between rolls. The membrane stays organic throughout transfer (cube deformation is disabled for this lineage). The suction rim remains fixed during transfer before peeling free into the roll. The black tier uses a dark wine-red pearl.
+
+### Evasion Game
+
+Open `?specimen=evasion-game` or the Evasion Game card in Playground. WASD / arrow keys move the original Reed mesh; touch direction buttons are also available. Escape pauses, R restarts. Twelve Gorogoro hunt the player, each with an exact 0.33 m body radius. Reed uses a 0.2 m body radius (interpreting the requested 0.2 mm as a unit typo).
+
+Appendage contact slows the physical gait to 0.45/2.1 of normal speed and leaves a brief adhesive tether. Body contacts latch for up to 2.2 seconds. A single hunter slows Reed to roughly 55% gait speed but cannot pin it; two hunters restrain it. Two bodies holding for 1.4 seconds commit to a devouring sequence: four legs detach over two seconds, followed by two seconds of membrane enclosure and absorption. Restart clears all grips, severed limbs and escalation.
+
+The circular platform has a 12 m radius and a visible elevated edge. Crossing it starts a fatal gravity-driven fall for Reed or any hunter. Fallen hunters leave the hunt. Every 10 seconds adds 18% to predator simulation speed; the HUD shows bloodlust, speed multiplier and remaining hunters.
+
+This prototype uses ground-plane body circles and sampled curved appendage capsules, not exact shader-surface collision. Reed uses the lab’s XPBD soft body and shared reach / plant / pull controller. WASD supplies directional intent; physical body displacement drives player travel, and appendage contact slows the entire gait. `npm run test:evasion` covers movement, slowing, pinning, consumption, recovery and restart.
+
+Gorogoro retains the preceding body heading across cycle rollover and smoothly turns during coil; GPU regression checks cover each phase boundary and the next-cycle surface pose for all eight tiers at both detail levels. Captured Reed continues its physical gait in a restrained struggle, with small irregular tremors and at most 8 cm of movement around its adhesive grip; movement fades during absorption.
+
+Space shakes off body and appendage grips with 0.85 seconds of regrip protection. Each shake adds 26% heat and has a 0.38-second cooldown. Capture also adds heat; free movement cools Reed. The body shifts from pale green to red as heat rises. At full heat, shaking locks until heat falls to 45%. The committed severing/absorption sequence cannot be shaken off.

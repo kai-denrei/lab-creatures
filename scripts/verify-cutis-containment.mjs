@@ -9,12 +9,15 @@ export async function verifyContainment(low=false,rolling=false){
  const pos=g.getAttribute('position'),buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,pos.array,gl.STATIC_DRAW);const loc=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,3,gl.FLOAT,false,0,0);
  const out=gl.createBuffer(),data=new Float32Array(pos.count*3);gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER,out);gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER,data.byteLength,gl.DYNAMIC_READ);gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER,0,out);
  const set=(name,v)=>{const l=gl.getAttribLocation(program,name);if(l>=0){if(v.length===4)gl.vertexAttrib4fv(l,v);else gl.vertexAttrib3fv(l,v)}};
+ function capturePose(){
+ set('iOffset',swarm.offset.slice(0,3));set('iHeading',swarm.heading.slice(0,3));set('iPreviousHeading',swarm.previousHeading.slice(0,3));set('iAnchor',swarm.anchor.slice(0,3));set('iState',[swarm.phase[0],swarm.seed[0],swarm.scale[0],swarm.probeCount[0]*4+swarm.chosenProbe[0]]);set('iParams',swarm.params.slice(0,4));for(let j=0;j<3;j++)set('iProbe'+j,swarm['probe'+j].slice(0,3));
+ gl.enable(gl.RASTERIZER_DISCARD);gl.beginTransformFeedback(gl.POINTS);gl.drawArrays(gl.POINTS,0,pos.count);gl.endTransformFeedback();gl.disable(gl.RASTERIZER_DISCARD);gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER,0,data);
+ }
  const triangle=new THREE.Triangle(),point=new THREE.Vector3(),closest=new THREE.Vector3(),hit=new THREE.Vector3(),ray=new THREE.Ray(new THREE.Vector3(),new THREE.Vector3(.923,.231,.308).normalize()),indices=g.index.array,report=[];
- for(const tier of (rolling?GOROGORO_TIERS:CUTIS_TIERS).filter(t=>t.hard).flatMap(t=>[0,1,2,3].map(seed=>({...t,testSeed:seed})))){
+ for(const tier of (rolling?GOROGORO_TIERS:CUTIS_TIERS).filter(t=>rolling||t.hard).flatMap(t=>[0,1,2,3].map(seed=>({...t,testSeed:seed})))){
  Object.assign(swarm.config,tier.values);swarm.reset(1);swarm.seed[0]+=tier.testSeed*23.71;swarm.step(1/120,{x:4,z:1});let minimum=Infinity,bad=[],plantedVertices=null;
  for(let phase=0;phase<1;phase+=.01){swarm.scrub(phase);updateMaterial(level.material,swarm.config,tier.testSeed*1.731);for(const [name,u] of Object.entries(level.material.uniforms)){if(typeof u.value==='number')gl.uniform1f(gl.getUniformLocation(program,name),u.value)}
- set('iOffset',swarm.offset.slice(0,3));set('iHeading',swarm.heading.slice(0,3));set('iAnchor',swarm.anchor.slice(0,3));set('iState',[swarm.phase[0],swarm.seed[0],swarm.scale[0],swarm.probeCount[0]*4+swarm.chosenProbe[0]]);set('iParams',swarm.params.slice(0,4));for(let j=0;j<3;j++)set('iProbe'+j,swarm['probe'+j].slice(0,3));
- gl.enable(gl.RASTERIZER_DISCARD);gl.beginTransformFeedback(gl.POINTS);gl.drawArrays(gl.POINTS,0,pos.count);gl.endTransformFeedback();gl.disable(gl.RASTERIZER_DISCARD);gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER,0,data);
+ capturePose();
  if(rolling&&phase>.445&&phase<.695){
    if(!plantedVertices)plantedVertices=data.slice();
    const probe=swarm['probe'+swarm.chosenProbe[0]],angle=probe[0];
@@ -31,9 +34,21 @@ export async function verifyContainment(low=false,rolling=false){
    }
    if(!checked)throw Error('No suction-cup vertices tested');
  }
- const core=swarm.getCoreContact(0);point.set(core.center.x,core.center.y,core.center.z);ray.origin.copy(point);let distance=Infinity,hits=[];
+ const core=swarm.getCoreContact(0);if(core.radius<=0)continue;point.set(core.center.x,core.center.y,core.center.z);ray.origin.copy(point);let distance=Infinity,hits=[];
  for(let k=0;k<indices.length;k+=3){triangle.a.fromArray(data,indices[k]*3);triangle.b.fromArray(data,indices[k+1]*3);triangle.c.fromArray(data,indices[k+2]*3);triangle.closestPointToPoint(point,closest);distance=Math.min(distance,closest.distanceTo(point));if(ray.intersectTriangle(triangle.a,triangle.b,triangle.c,false,hit))hits.push(hit.distanceTo(point));}
  hits.sort((a,b)=>a-b);const crossings=hits.filter((v,i)=>i===0||v-hits[i-1]>.000001).length;minimum=Math.min(minimum,distance/core.radius);if(distance<core.radius*.999||crossings%2!==1)bad.push({phase:+phase.toFixed(2),ratio:distance/core.radius,crossings});
+ }
+ if(rolling){
+   for(const boundary of [.08,.44,.496,.68,.735,.9]){
+     swarm.scrub(boundary-.000001);capturePose();const before=data.slice();
+     swarm.scrub(boundary+.000001);capturePose();let jump=0;
+     for(let v=0;v<data.length;v+=3)jump=Math.max(jump,Math.hypot(data[v]-before[v],data[v+1]-before[v+1],data[v+2]-before[v+2]));
+     if(jump>tier.values.r0*.01)throw Error(`Phase ${boundary} discontinuity: ${jump} (${tier.id})`);
+   }
+   swarm.scrub(.99999);capturePose();const settled=data.slice();
+   swarm.frozen=false;swarm.step(.001,{x:-6,z:-5});capturePose();
+   let jump=0;for(let v=0;v<data.length;v+=3)jump=Math.max(jump,Math.hypot(data[v]-settled[v],data[v+1]-settled[v+1],data[v+2]-settled[v+2]));
+   if(jump>tier.values.r0*.005)throw Error(`Cycle reset moved the surface by ${jump} (${tier.id})`);
  }
  report.push({tier:tier.id,minimum,bad});
  }model.dispose();gl.deleteBuffer(buffer);gl.deleteBuffer(out);gl.deleteProgram(program);gl.getExtension('WEBGL_lose_context')?.loseContext();if(report.some(r=>r.bad.length))throw new Error(JSON.stringify(report));return report;

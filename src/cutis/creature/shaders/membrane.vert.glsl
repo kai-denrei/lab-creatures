@@ -1,5 +1,6 @@
 attribute vec3 iOffset;
 attribute vec3 iHeading;
+attribute vec3 iPreviousHeading;
 attribute vec3 iAnchor;
 attribute vec4 iState;
 #define iPhase iState.x
@@ -20,7 +21,16 @@ vec3 extent4(float theta){
   for(int i=0;i<4;i++){float x=mod(float(i),2.)*2.-1.,w=floor(float(i)/2.)*2.-1.;float xx=x*c-w*s,ww=x*s+w*c;extent=max(extent,vec3(abs(xx),1.,1.)/(2.5-ww));}
   return extent/max(max(extent.x,extent.y),extent.z);
 }
-vec3 orient(vec3 p){return vec3(iHeading.z*p.x+iHeading.x*p.z,p.y,-iHeading.x*p.x+iHeading.z*p.z);}
+vec3 orient(vec3 p){
+  vec3 heading=iHeading;
+  if(uRoll>.5&&iPhase<.08){
+    float from=atan(iPreviousHeading.x,iPreviousHeading.z),to=atan(iHeading.x,iHeading.z);
+    float delta=atan(sin(to-from),cos(to-from));
+    float angle=from+delta*smoothstep(0.,.08,iPhase);
+    heading=vec3(sin(angle),0.,cos(angle));
+  }
+  return vec3(heading.z*p.x+heading.x*p.z,p.y,-heading.x*p.x+heading.z*p.z);
+}
 vec3 turn(vec3 p,float angle){float c=cos(angle),s=sin(angle);return vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);}
 vec4 probeFor(vec3 n){
   vec4 probe=vec4(iProbe0,0.);float best=turn(n,-iProbe0.x).z;
@@ -156,7 +166,7 @@ vec4 deform(vec3 bodyN){
     vec3 fixedCup=iAnchor+orient(turn(pad,probe.x));fixedCup.y=pad.y;
     p=mix(p,fixedCup,grip);
   }
-  p.y=max(.009,p.y);
+  p.y=max(.009,p.y)+iOffset.y;
   float stretch=1.+lead*extension*probe.y/max(.01,r)*(1.-smoothstep(.66,.85,phase))+fold*2.;
   return vec4(p,stretch);
 }

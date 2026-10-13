@@ -2,7 +2,8 @@ import './style.css';
 import './landing.css';
 async function openPage(){
   const specimen=new URLSearchParams(location.search).get('specimen');
-  if(specimen==='jelly-baby'){
+  if(specimen==='evasion-game'){await import('./evasion/page.ts');}
+  else if(specimen==='jelly-baby'){
     document.body.classList.add('baby-playground');
     await import('./baby-page.ts');
     document.querySelector('.actions')!.insertAdjacentHTML('afterbegin','<a class="back-link" href="./">← Specimens</a>');

@@ -5,7 +5,7 @@ import { CutisSwarm } from './swarm/controller.ts';
 import { createHardCores } from './creature/hard-core.ts';
 import { createSwarmGeometry } from './creature/geometry.ts';
 import type { CutisConfig } from './swarm/config.ts';
-export function createCutisScene(host:HTMLElement,config:CutisConfig){
+export function createCutisScene(host:HTMLElement,config:CutisConfig,options:{interactive?:boolean;elevated?:boolean}={}){
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(host.clientWidth,host.clientHeight);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;host.append(renderer.domElement);
   renderer.domElement.setAttribute('aria-label','Cutis-Maku observation arena. Drag the red lure or tap the ground. Drag elsewhere to orbit.');
   const scene=new THREE.Scene();scene.background=new THREE.Color('#171c1a');
@@ -13,7 +13,7 @@ export function createCutisScene(host:HTMLElement,config:CutisConfig){
   const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(.15,.2,0);if(config.rollVariant){camera.position.set(-2,11,12);controls.target.set(3,.2,3);}controls.enableDamping=true;controls.minDistance=.55;controls.maxDistance=32;controls.maxPolarAngle=Math.PI*.46;
   scene.add(new THREE.HemisphereLight('#d0d6c0','#282720',2));const key=new THREE.DirectionalLight('#ffffff',3);key.position.set(-2,5,3);scene.add(key);
   const floor=new THREE.Mesh(new THREE.CircleGeometry(12,128),new THREE.MeshStandardMaterial({color:'#343c35',roughness:.86}));floor.rotation.x=-Math.PI/2;floor.position.y=-.002;scene.add(floor);
-  const grid=new THREE.GridHelper(24,48,'#586151','#454e43');grid.position.y=.001;(grid.material as THREE.Material).transparent=true;(grid.material as THREE.Material).opacity=.22;scene.add(grid);
+  const grid=new THREE.GridHelper(24,48,'#586151','#454e43');grid.position.y=.001;(grid.material as THREE.Material).transparent=true;(grid.material as THREE.Material).opacity=.22;scene.add(grid);if(options.elevated){grid.visible=false;const plinth=new THREE.Mesh(new THREE.CylinderGeometry(12,12,2.4,128),new THREE.MeshStandardMaterial({color:0x202a29,roughness:.9}));plinth.position.y=-1.28;scene.add(plinth);const rim=new THREE.Mesh(new THREE.TorusGeometry(12,.045,8,128),new THREE.MeshStandardMaterial({color:0xb6a777,emissive:0x30291b}));rim.rotation.x=Math.PI/2;scene.add(rim);scene.background=new THREE.Color(0x080e12);}
   const lure=new THREE.Mesh(new THREE.SphereGeometry(.045,20,12),new THREE.MeshStandardMaterial({color:'#e25b3b',emissive:'#942c18',emissiveIntensity:.6}));lure.position.set(config.rollVariant?6.2:1.3,.048,config.rollVariant?5:.6);scene.add(lure);const prey=new FleeingPrey();
   const swarm=new CutisSwarm(config),model=createSwarmGeometry(swarm);scene.add(model.group);const hardCores=createHardCores(swarm);scene.add(hardCores.group);
   // Quiet contact shadows support the translucent shader without per-instance shadow maps.
@@ -25,7 +25,7 @@ export function createCutisScene(host:HTMLElement,config:CutisConfig){
   let autoLure=true,moveLure=false,held=false,activePointer=-1,downX=0,downY=0,debug=0,force=false,lureTime=0,stopped=false;
   const ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),point=new THREE.Vector3(),abort=new AbortController(),{signal}=abort;
   const rayAt=(event:PointerEvent)=>{const r=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-r.left)/r.width*2-1,1-(event.clientY-r.top)/r.height*2);ray.setFromCamera(pointer,camera);};
-  const place=(event:PointerEvent)=>{rayAt(event);if(ray.ray.intersectPlane(ground,point)){point.clampLength(0,10);lure.position.set(point.x,.048,point.z);}};
+  const place=(event:PointerEvent)=>{if(options.interactive===false)return;rayAt(event);if(ray.ray.intersectPlane(ground,point)){point.clampLength(0,10);lure.position.set(point.x,.048,point.z);}};
   const release=()=>{held=false;controls.enabled=true;if(activePointer>=0&&renderer.domElement.hasPointerCapture(activePointer))renderer.domElement.releasePointerCapture(activePointer);activePointer=-1;};
   renderer.domElement.addEventListener('pointerdown',event=>{downX=event.clientX;downY=event.clientY;rayAt(event);if(moveLure||ray.intersectObject(lure).length){event.stopImmediatePropagation();controls.enabled=false;held=true;activePointer=event.pointerId;renderer.domElement.setPointerCapture(event.pointerId);place(event);}},{signal,capture:true});
   renderer.domElement.addEventListener('pointermove',event=>{if(held&&event.pointerId===activePointer){event.stopImmediatePropagation();place(event);}},{signal,capture:true});
@@ -42,7 +42,7 @@ export function createCutisScene(host:HTMLElement,config:CutisConfig){
     }
     hardCores.update();
     model.update(camera,host.clientHeight,debug,force);shadows.count=swarm.count;
-    for(let i=0;i<swarm.count;i++){const p=swarm.position(i);dummy.position.set(p[0],.002,p[2]);dummy.rotation.set(-Math.PI/2,0,0);dummy.scale.setScalar(swarm.configFor(i).r0*swarm.scale[i]*1.2);dummy.updateMatrix();shadows.setMatrixAt(i,dummy.matrix);}shadows.instanceMatrix.needsUpdate=true;
+    for(let i=0;i<swarm.count;i++){const p=swarm.position(i);dummy.position.set(p[0],.002,p[2]);dummy.rotation.set(-Math.PI/2,0,0);dummy.scale.setScalar(swarm.offset[i*3+1]<-.1?0:swarm.configFor(i).r0*swarm.scale[i]*1.2);dummy.updateMatrix();shadows.setMatrixAt(i,dummy.matrix);}shadows.instanceMatrix.needsUpdate=true;
     if(cage.visible){const phase=swarm.phase[0],theta=swarm.seed[0]*.2+Math.max(0,Math.min(1,(phase-.62)/.23))*2.1,c=Math.cos(theta),s=Math.sin(theta),p=swarm.position(0),r=swarm.configFor(0).r0;for(let i=0;i<16;i++){const x=(i&1)?1:-1,y=(i&2)?1:-1,z=(i&4)?1:-1,w=(i&8)?1:-1,xx=x*c-w*s,ww=x*s+w*c;verts[i].set(xx/(2.5-ww)*r+p[0],y/(2.5-ww)*r+r*.78,z/(2.5-ww)*r+p[2]);}let k=0;for(const [a,b] of edges){cagePositions.set(verts[a].toArray(),k);k+=3;cagePositions.set(verts[b].toArray(),k);k+=3;}cageGeometry.attributes.position.needsUpdate=true;}
     controls.update();renderer.render(scene,camera);
   }

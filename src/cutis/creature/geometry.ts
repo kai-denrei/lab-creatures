@@ -5,7 +5,7 @@ import { createMembraneMaterial,updateMaterial } from './material.ts';
 import { CUTIS_TIERS,PEARL_TIERS,GOROGORO_TIERS } from '../swarm/tiers.ts';
 import type { CutisConfig } from '../swarm/config.ts';
 import type { CutisSwarm } from '../swarm/controller.ts';
-const sizes={iOffset:3,iHeading:3,iAnchor:3,iState:4,iParams:4,iProbe0:3,iProbe1:3,iProbe2:3};
+const sizes={iOffset:3,iHeading:3,iPreviousHeading:3,iAnchor:3,iState:4,iParams:4,iProbe0:3,iProbe1:3,iProbe2:3};
 export function createSwarmGeometry(swarm:CutisSwarm){
   const group=new THREE.Group();group.name='Cutis-Maku';
   const levels=[false,true].map(low=>{
@@ -57,7 +57,7 @@ export function createSwarmGeometry(swarm:CutisSwarm){
   function update(camera:THREE.PerspectiveCamera,height:number,debug=0,force=false){
     levels.forEach(l=>l.count=0);
     for(let i=0;i<swarm.count;i++){state[i*4]=swarm.phase[i];state[i*4+1]=swarm.seed[i];state[i*4+2]=swarm.scale[i];state[i*4+3]=swarm.probeCount[i]*4+swarm.chosenProbe[i];}
-    const source:Record<string,Float32Array>={iOffset:swarm.offset,iHeading:swarm.heading,iAnchor:swarm.anchor,iState:state,iParams:swarm.params,iProbe0:swarm.probe0,iProbe1:swarm.probe1,iProbe2:swarm.probe2};
+    const source:Record<string,Float32Array>={iOffset:swarm.offset,iHeading:swarm.heading,iPreviousHeading:swarm.previousHeading,iAnchor:swarm.anchor,iState:state,iParams:swarm.params,iProbe0:swarm.probe0,iProbe1:swarm.probe1,iProbe2:swarm.probe2};
     for(let i=0;i<swarm.count;i++){
       const config=swarm.configFor(i);
       position.set(swarm.offset[i*3],config.r0,swarm.offset[i*3+2]);

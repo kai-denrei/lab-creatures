@@ -5,9 +5,11 @@ const hash=(n:number)=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math
 export class CutisSwarm{
   readonly capacity=300;
   count=1;time=0;frozen=false;mixed=false;
+  suspended=new Uint8Array(300);
   configFor(i:number){return this.mixed&&this.count>1?(this.config.rollVariant?GOROGORO_TIERS:this.config.pearlVariant?PEARL_TIERS:CUTIS_TIERS)[i%CUTIS_TIERS.length].values:this.config;}
   setMixed(on:boolean){if(this.mixed!==on){this.mixed=on;this.reset();}}
   speedFor(i:number){return this.mixed&&this.count>1?.92+hash(i+411)*.16:1;}
+  previousHeading=new Float32Array(900);
   offset=new Float32Array(900);heading=new Float32Array(900);anchor=new Float32Array(900);
   phase=new Float32Array(300);seed=new Float32Array(300);scale=new Float32Array(300);params=new Float32Array(1200);
   probe0=new Float32Array(900);probe1=new Float32Array(900);probe2=new Float32Array(900);
@@ -17,13 +19,13 @@ export class CutisSwarm{
   config:CutisConfig;
   constructor(config:CutisConfig){this.config=config;for(let i=0;i<300;i++){this.seed[i]=hash(i+17)*100;this.scale[i]=.85+hash(i+93)*.3;}this.reset(1);}
   reset(count=this.count){
-    this.count=Math.max(1,Math.min(300,Math.round(count)));this.time=0;
+    this.count=Math.max(1,Math.min(300,Math.round(count)));this.time=0;this.suspended.fill(0);
     for(let i=0;i<this.count;i++){
       const k=i*3,angle=i*2.399963,r=this.count===1?0:Math.sqrt((i+.5)/this.count)*Math.max(2.5,Math.sqrt(this.count)*.39);
       this.offset[k]=Math.cos(angle)*r;this.offset[k+1]=0;this.offset[k+2]=Math.sin(angle)*r;
       this.heading[k]=Math.cos(angle+.8);this.heading[k+1]=0;this.heading[k+2]=Math.sin(angle+.8);
       this.phase[i]=this.count===1?0:hash(i+71);this.cycles[i]=0;this.idle[i]=0;
-      this.plan(i,1.3,.6,false);this.duration[i]=this.configFor(i).cycleDuration*(.8+hash(i+31)*.4)/this.speedFor(i);
+      this.plan(i,1.3,.6,false);this.previousHeading.set(this.heading.subarray(k,k+3),k);this.duration[i]=this.configFor(i).cycleDuration*(.8+hash(i+31)*.4)/this.speedFor(i);
     }
   }
   private plan(i:number,tx:number,tz:number,neighbors=true){
@@ -77,13 +79,14 @@ export class CutisSwarm{
     if(this.frozen)return;this.time+=dt;
     for(let i=0;i<this.count;i++){const k=i*3,p=this.position(i);this.occupied[k]=p[0];this.occupied[k+2]=p[2];}
     for(let i=0;i<this.count;i++){
+      if(this.suspended[i])continue;
       if(this.idle[i]){if(Math.hypot(target.x-this.offset[i*3],target.z-this.offset[i*3+2])>this.configFor(i).r0*this.scale[i]){this.cycles[i]++;this.plan(i,target.x,target.z);this.phase[i]=0;}continue;}
       if(this.phase[i]===0)this.plan(i,target.x,target.z);
       const config=this.configFor(i),rolling=config.rollVariant>0,timing=cycleTiming(this.duration[i]),raw=this.phase[i],phase=membranePhase(raw,config.rollVariant);
       const rate=phase<.1?.1/timing.coil:phase<.55?.45/timing.extend:phase<.62?.07/timing.anchor:phase<.85?.23/timing.transfer:.15/timing.settle;
       this.phase[i]+=dt*(rolling?(raw<.496?rate*.8:raw<.9?momentumRate(raw,.184/timing.transfer,.22*this.speedFor(i)/config.rollDuration):.1*this.speedFor(i)/config.landingPause):rate);
       if(phase<.55&&membranePhase(this.phase[i],config.rollVariant)>=.55&&this.probeCount[i]>1)this.selectProbe(i,target.x,target.z);
-      if(this.phase[i]>=1){const k=i*3;const landing=this.getLanding(i);this.offset[k]=landing.x;this.offset[k+2]=landing.z;this.cycles[i]++;this.plan(i,target.x,target.z);this.phase[i]=0;}
+      if(this.phase[i]>=1){const k=i*3;this.previousHeading.set(this.heading.subarray(k,k+3),k);const landing=this.getLanding(i);this.offset[k]=landing.x;this.offset[k+2]=landing.z;this.cycles[i]++;this.plan(i,target.x,target.z);this.phase[i]=0;}
       this.params[i*4+1]=config.cubenessPeak;this.params[i*4+2]=config.pulseSpeed;this.params[i*4+3]=config.wobble;
     }
   }
@@ -97,6 +100,7 @@ export class CutisSwarm{
     if(phase>=.85){const settle=(phase-.85)/.15,recoil=Math.exp(-6*settle)*Math.sin(settle*22)*r*.12*config.wobble;center.x=this.anchor[k]+this.heading[k]*recoil;center.z=this.anchor[k+2]+this.heading[k+2]*recoil;center.y=r*.78;}
     const radius=spec.collisionRadius*this.scale[i];if(radius>0)center.y=Math.max(center.y,radius*1.3+.018);
     if(config.rollVariant){const motion=rollMotion(this.phase[i],this.params[i*4],r,config.wobble,config.launchHeight),dx=this.anchor[k]-this.offset[k],dz=this.anchor[k+2]-this.offset[k+2],length=Math.hypot(dx,dz)||1;if(this.phase[i]>=.496){center.x=this.offset[k]+dx/length*motion.distance;center.z=this.offset[k+2]+dz/length*motion.distance;}center.y+=motion.lift;}
+    center.y+=this.offset[k+1];
     return {...spec,center,radius};
   }
   contactDamageAt(i:number,point:{x:number;y:number;z:number},unitRadius:number,dt:number){const c=this.getCoreContact(i);return !c.rammable&&Math.hypot(point.x-c.center.x,point.y-c.center.y,point.z-c.center.z)<=c.radius+Math.max(0,unitRadius)?c.contactDamagePerSecond*Math.max(0,dt):0;}
