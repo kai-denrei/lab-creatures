@@ -9,7 +9,7 @@ attribute vec4 iParams;
 attribute vec3 iProbe0,iProbe1,iProbe2;
 #define iProbeCount floor(iState.w/4.)
 #define iChosenProbe mod(iState.w,4.)
-uniform float uHardRadius;
+uniform float uHardRadius,uRoll,uLaunchHeight;
 uniform float uTime,uRadius,uNoise,uBreath,uRestCube,uCap,uNeck,uDelay,uCore,uForceCube,uSeekSweep,uSeekRate,uAcceleration;
 varying vec3 vWorld,vRest,vHeading,vNormal;
 varying float vStretch,vPhase,vSeed,vLead;
@@ -32,7 +32,7 @@ vec4 deform(vec3 bodyN){
   vec4 probe=probeFor(bodyN);
   vec3 n=turn(bodyN,-probe.x);
 
-  float phase=iPhase,r=uRadius*iScale,core=mix(1.,.45,uCore);
+  float phase=uRoll>.5?min(.85,iPhase/.8):iPhase,r=uRadius*iScale,core=mix(1.,.45,uCore);
   float transfer=clamp((phase-.62)/.23,0.,1.);
   float accelerated=pow(transfer,uAcceleration);
   float fold=sin(accelerated*3.14159265);
@@ -42,7 +42,7 @@ vec4 deform(vec3 bodyN){
   float breathe=sin(uTime*uBreath*6.283+bodyN.x*2.+iSeed)*.026;
   float radius=max(.28,1.+lump*uNoise*1.7+breathe);
   // Rest attractor is deliberately subdued; only a transfer exposes the folded structure.
-  float cube=max(uForceCube,uRestCube*.12+iParams.y*fold*fold);
+  float cube=uRoll>.5?0.:max(uForceCube,uRestCube*.12+iParams.y*fold*fold);
   vec3 rest=n*max(mix(radius,rounded,cube),uHardRadius*3.6)*r;
   // Nested cross-sections share their longitudinal coordinates and centerline.
   rest.xy*=core;
@@ -125,6 +125,36 @@ vec4 deform(vec3 bodyN){
     // triangles spanning neighboring vertices as withdrawn stalks fold inward.
     vec3 delta=p-center;float distance=length(delta),shell=r*uHardRadius*2.;
     if(distance<shell)p=center+normalize(delta+vec3(0.,.000001,0.))*shell;
+  }
+  if(uRoll>.5&&iPhase>=.496){
+    float t=clamp((iPhase-.68)/.22,0.,1.),carry=clamp((iPhase-.496)/.404,0.,1.);
+    float travel=carry*carry*(3.-2.*carry),turning=t*t*(3.-2.*t),landing=clamp((iPhase-.9)/.1,0.,1.);
+    float recoil=iPhase>=.9?-r*.12*iParams.w*sin(landing*3.14159265)*exp(-4.*landing):0.;
+    float lift=t<.25?sin(t/.25*3.14159265)*r*uLaunchHeight:0.;
+    vec3 direction=iAnchor-iOffset;direction.y=0.;direction=length(direction)>.00001?normalize(direction):iHeading;
+    vec3 axis=vec3(direction.z,0.,-direction.x);
+    float angle=max(1.,floor(iParams.x/(6.2831853*r)+.5))*6.2831853*turning;
+    float bodyU=clamp((accelerated-uDelay*.5)/max(.02,1.-uDelay),0.,1.);
+    float bodyTravel=2.*bodyU-bodyU*bodyU;
+    vec3 center=mix(iOffset,iAnchor,bodyTravel);
+    center.y=max(r*.78*((1.-bodyU)*(1.-bodyU)+bodyU*bodyU)+2.*(1.-bodyU)*bodyU*.014,uHardRadius>0.?r*uHardRadius*1.3+.018:0.);
+    vec3 local=p-center;
+    local=local*cos(angle)+cross(axis,local)*sin(angle)+axis*dot(axis,local)*(1.-cos(angle));
+    float squash=sin(landing*3.14159265)*exp(-3.*landing)*.16;local*=vec3(1.+squash*.5,1.-squash,1.+squash*.5);
+    p=center+local+direction*(iParams.x*(2.*travel-bodyTravel)+recoil)+vec3(0.,lift,0.);
+  }
+  if(uRoll>.5&&winner){
+    // The planted cup is a world-space constraint, not part of the moving body.
+    // Preserve its full rounded rim until the mass passes the foothold, then peel
+    // it free into the roll. Neighboring stalk rings stretch toward this grip.
+    float planted=smoothstep(.52,.55,phase);
+    float release=smoothstep(.70,.76,iPhase);
+    float grip=cup*planted*(1.-release);
+    vec3 pad=vec3(cos(azimuth)*r*.58*disk*core,
+      .018+r*(.16+.12*cos(cupT*3.14159265)*core+.06*disk),
+      sin(azimuth)*r*.58*disk*core);
+    vec3 fixedCup=iAnchor+orient(turn(pad,probe.x));fixedCup.y=pad.y;
+    p=mix(p,fixedCup,grip);
   }
   p.y=max(.009,p.y);
   float stretch=1.+lead*extension*probe.y/max(.01,r)*(1.-smoothstep(.66,.85,phase))+fold*2.;

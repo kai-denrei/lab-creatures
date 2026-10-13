@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createMembraneMaterial,updateMaterial } from './material.ts';
-import { CUTIS_TIERS,PEARL_TIERS } from '../swarm/tiers.ts';
+import { CUTIS_TIERS,PEARL_TIERS,GOROGORO_TIERS } from '../swarm/tiers.ts';
 import type { CutisConfig } from '../swarm/config.ts';
 import type { CutisSwarm } from '../swarm/controller.ts';
 const sizes={iOffset:3,iHeading:3,iAnchor:3,iState:4,iParams:4,iProbe0:3,iProbe1:3,iProbe2:3};
@@ -66,7 +66,7 @@ export function createSwarmGeometry(swarm:CutisSwarm){
       const level=levels[batch+(pixels<26?1:0)],index=level.count++;
       for(const [name,size] of Object.entries(sizes)){const array=level.attributes[name].array;for(let k=0;k<size;k++)array[index*size+k]=source[name][i*size+k];}
     }
-    for(const l of levels){const config=l.tier>=0?(swarm.config.pearlVariant?PEARL_TIERS:CUTIS_TIERS)[l.tier].values:swarm.config;l.membrane.count=l.core.count=l.count;l.membrane.visible=l.count>0;l.core.visible=l.count>0&&config.coreShape<1;for(const a of Object.values(l.attributes)){a.clearUpdateRanges();a.addUpdateRange(0,l.count*a.itemSize);a.needsUpdate=true;}updateMaterial(l.material,config,swarm.time,debug,force);updateMaterial(l.coreMaterial,config,swarm.time,debug,force);}
+    for(const l of levels){const config=l.tier>=0?(swarm.config.rollVariant?GOROGORO_TIERS:swarm.config.pearlVariant?PEARL_TIERS:CUTIS_TIERS)[l.tier].values:swarm.config;l.membrane.count=l.core.count=l.count;l.membrane.visible=l.count>0;l.core.visible=l.count>0&&config.coreShape<1;for(const a of Object.values(l.attributes)){a.clearUpdateRanges();a.addUpdateRange(0,l.count*a.itemSize);a.needsUpdate=true;}updateMaterial(l.material,config,swarm.time,debug,force);updateMaterial(l.coreMaterial,config,swarm.time,debug,force);}
   }
   return {group,levels,update,dispose:()=>levels.forEach(l=>{l.geometry.dispose();l.coreGeometry.dispose();l.material.dispose();l.coreMaterial.dispose();l.membrane.dispose();l.core.dispose();})};
 }

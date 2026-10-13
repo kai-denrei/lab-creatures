@@ -1,10 +1,10 @@
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { createCutisScene } from '../scene.ts';
 import { CUTIS_CONTROLS,CUTIS_PALETTES,applyPalette,selectedPalette } from '../swarm/config.ts';
-import { CUTIS_TIERS as STANDARD_TIERS,PEARL_TIERS,CORE_SHAPES,selectedTier } from '../swarm/tiers.ts';
+import { CUTIS_TIERS as STANDARD_TIERS,PEARL_TIERS,GOROGORO_TIERS,CORE_SHAPES,selectedTier } from '../swarm/tiers.ts';
 import preset from './preset.ts';
 const config={...preset};
-const CUTIS_TIERS=config.pearlVariant?PEARL_TIERS:STANDARD_TIERS;
+const CUTIS_TIERS=config.rollVariant?GOROGORO_TIERS:config.pearlVariant?PEARL_TIERS:STANDARD_TIERS;
 const host=document.querySelector<HTMLElement>('#viewport')!,lab=createCutisScene(host,config),gui=new GUI({title:'Cutis-Maku'});
 const views={tier:selectedTier(config),palette:selectedPalette(config),count:1,mixedPack:false,freeze:false,phase:0,autoLure:true,moveLure:false,cage:false,forceCube:false,view:0};
 gui.add(views,'tier',Object.fromEntries(CUTIS_TIERS.map(t=>[t.name,t.id]))).name('Belt difficulty').onChange((id:string)=>{Object.assign(config,CUTIS_TIERS.find(t=>t.id===id)!.values);lab.reset();gui.controllersRecursive().forEach(c=>c.updateDisplay());});

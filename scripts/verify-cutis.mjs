@@ -98,3 +98,45 @@ const pearlSwarm=new CutisSwarm({...PEARL_DEFAULT_CONFIG});pearlSwarm.reset(100)
 for(let i=0;i<100;i++)assert.equal(pearlSwarm.configFor(i).coreShape,i%8<4?0:3);
 for(const tier of CUTIS_TIERS.filter(t=>t.hard)){const s=new CutisSwarm({...tier.values});for(let p=0;p<1;p+=.005){s.scrub(p);const c=s.getCoreContact(0);assert(c.center.y-c.radius>.009,'core clears the floor throughout transfer');}}
 console.log('PASS smaller cores, synchronized contact path, floor clearance and all-pearl mixed lineage');
+
+const {GOROGORO_TIERS,GOROGORO_DEFAULT_CONFIG}=await import('../src/cutis/swarm/tiers.ts');
+for(const tier of GOROGORO_TIERS){
+ const s=new CutisSwarm({...tier.values});s.step(1/120,{x:4,z:1});const origin=[s.offset[0],s.offset[2]],anchor=s.getAnchor(0),landing=s.getLanding(0),reach=Math.hypot(anchor.x-origin[0],anchor.z-origin[1]);
+ assert(Math.abs(Math.hypot(landing.x-anchor.x,landing.z-anchor.z)-reach)<1e-6,'roll adds exactly the chosen reach');
+ s.scrub(.68);const start=s.getCoreContact(0);assert(Math.hypot(start.center.x-anchor.x,start.center.z-anchor.z)>reach*.1,"momentum starts before transfer finishes");
+ for(const phase of [.63,.65,.67,.68,.69,.71]){s.scrub(phase);const a=s.getCoreContact(0).center;s.scrub(phase+.001);const b=s.getCoreContact(0).center;assert(Math.hypot(b.x-a.x,b.z-a.z)>.0001,"no stop between transfer and rolling");}
+ assert.equal(tier.values.cycleDuration,10);
+ s.scrub(.705);assert(s.getCoreContact(0).center.y>start.center.y,'launch lifts body and core');
+ s.scrub(.9);const end=s.getCoreContact(0);assert(Math.hypot(end.center.x-landing.x,end.center.z-landing.z)<1e-5);
+ s.scrub(.94);assert(Math.hypot(s.getCoreContact(0).center.x-landing.x,s.getCoreContact(0).center.z-landing.z)>0,'landing recoil');
+ s.scrub(.99999);s.frozen=false;s.step(1/120,{x:-4,z:-1});assert.equal(s.cycles[0],1);assert(Math.hypot(s.offset[0]-landing.x,s.offset[2]-landing.z)<1e-5,'next search begins at rolled landing');
+ const mixed=new CutisSwarm({...GOROGORO_DEFAULT_CONFIG});mixed.reset(12);mixed.setMixed(true);assert(Array.from({length:12},(_,i)=>mixed.configFor(i)).every(c=>c.rollVariant===1&&c.pearlVariant===1));
+}
+console.log('PASS Gorogoro full-reach rolling distance, launch lift, landing recoil, committed endpoint and mixed lineage');
+
+// Measure real-time velocity, not just nonzero displacement while scrubbing.
+for(const rollDuration of [.3,2.4,3])for(const cycleDuration of [2,10]){
+ const s=new CutisSwarm({...GOROGORO_DEFAULT_CONFIG,rollDuration,cycleDuration});
+ s.step(1/120,{x:8,z:3});
+ const velocity=phase=>{s.scrub(phase);const a=s.position(0);s.frozen=false;s.step(.001,{x:8,z:3});const b=s.position(0);return Math.hypot(b[0]-a[0],b[2]-a[2])/.001;};
+ const before=velocity(.6795),after=velocity(.6805);
+ assert(Math.abs(after-before)/before<.02,'transfer/roll boundary must preserve real-time velocity');
+}
+console.log('PASS seamless transfer-to-roll velocity across different cycle and roll durations');
+
+const {FleeingPrey}=await import('../src/cutis/swarm/prey.ts');
+{
+ const s=new CutisSwarm({...GOROGORO_DEFAULT_CONFIG}),prey=new FleeingPrey(),p={x:6.2,z:5},dt=1/120;
+ let cycles=0;
+ for(let frame=0;frame<120*120;frame++){
+   const x=p.x,z=p.z,vx=prey.vx,vz=prey.vz;
+   prey.step(dt,p,s);s.step(dt,p);
+   assert(Math.hypot(p.x-x,p.z-z)<=2.86*dt,'prey never teleports, including cycle transitions');
+   assert(Math.hypot(prey.vx-vx,prey.vz-vz)<=2.501*dt,'prey changes velocity continuously');
+   assert(Math.hypot(p.x,p.z)<12,'prey stays in observation arena');
+   cycles=s.cycles[0];
+ }
+ assert(cycles>5,'exercise multiple complete hunts');
+ assert.equal(GOROGORO_DEFAULT_CONFIG.coreTint,0x701d35);
+}
+console.log('PASS continuous fleeing prey across repeated hunts and wine-red Gorogoro core');

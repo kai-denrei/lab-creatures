@@ -16,7 +16,9 @@ export const CUTIS_TIERS=rows.map(([id,name,skin,core,r0,seekCount,cycleDuration
   values:{...DEFAULT_CONFIG,r0,seekCount,cycleDuration,aggression,skinTint:skin,veinTint:id==='black'?0xbab6c1:0x45404b,pulseTint:core,coreTint:core,coreShape,coreSize:id==='black'?.18:id==='purple'?.22:.28,membraneOpacity:coreShape?.32:.65,contactDamage,health,transferAcceleration:rank<4?1.8:2.5,reach:rank<4?8+rank:12+(rank-4),noiseAmp:.15,veinWidth:.035} as CutisConfig,
 }));
 export const PEARL_TIERS=CUTIS_TIERS.map(t=>({...t,values:{...t.values,coreShape:t.hard?3:0,pearlVariant:1}}));
+export const GOROGORO_TIERS=PEARL_TIERS.map(t=>({...t,values:{...t.values,coreTint:t.id==='black'?0x701d35:t.values.coreTint,rollVariant:1,cycleDuration:10,rollDuration:2.4,landingPause:.8,cubenessPeak:0,cubenessRest:0}}));
+export const GOROGORO_DEFAULT_CONFIG={...GOROGORO_TIERS[7].values};
 export const PEARL_DEFAULT_CONFIG={...PEARL_TIERS[7].values};
 export const K_DEFAULT_CONFIG={...CUTIS_TIERS[7].values};
-export function selectedTier(config:CutisConfig){return (config.pearlVariant?PEARL_TIERS:CUTIS_TIERS).find(t=>Object.keys(t.values).every(k=>t.values[k as keyof CutisConfig]===config[k as keyof CutisConfig]))?.id??'custom';}
+export function selectedTier(config:CutisConfig){return (config.rollVariant?GOROGORO_TIERS:config.pearlVariant?PEARL_TIERS:CUTIS_TIERS).find(t=>Object.keys(t.values).every(k=>t.values[k as keyof CutisConfig]===config[k as keyof CutisConfig]))?.id??'custom';}
 export function coreContact(config:CutisConfig){const hard=config.coreShape>=1;return {rammable:!hard,radarVisible:true,radarBlipSize:hard?4:2.5,proximityWarning:hard,contactDamagePerSecond:hard?config.contactDamage:0,health:config.health,coreShape:CORE_SHAPES[Math.round(config.coreShape)],collisionRadius:hard?config.r0*config.coreSize:0};}

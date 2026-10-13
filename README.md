@@ -403,3 +403,14 @@ Stalheart's current convention uses `rammable` for the soft/hard split; both typ
 Rigid cores now follow the same delayed Bézier body center used by the surrounding hard-tier membrane, including settle recoil and floor clearance. The hard-tier surface maintains a padded volume around that center to prevent folding stalk triangles from clipping the core. Soft-tier transfer keeps its original per-vertex rear delay.
 
 `scripts/verify-cutis-containment.mjs` captures the actual GPU-deformed membrane vertices, measures the core sphere's clearance from every triangle, and checks odd/even ray containment. With Vite running, import it in the browser and call `verifyContainment()` and `verifyContainment(true)` for near/far LODs. The regression covers all four hard tiers, four seeds and 100 cycle samples per detail level (3,200 poses total). Pure controller tests also check pearl mixed packs, floor clearance and contact radii.
+
+
+### Cutis-gorogoro — launch, roll, recover
+
+Open `?specimen=cutis-gorogoro` for the separate Pearl-derived rolling lineage, with its own saved draft and all eight belt tiers. The first stages retain Cutis's seeking, anchoring and transfer. Momentum begins building during the final transfer, flowing through the foothold into a forward tumble. It travels **exactly the chosen appendage's reach distance again**, then recoils and settles before seeking again. The next origin is the rolled landing, not the original suction anchor. Steering stays locked through the roll.
+
+Locomotion controls expose roll duration (default 2.4 s), landing recovery (0.8 s) and launch lift (0.5 body radii). The transfer and roll clocks blend across their handoff, respecting each creature's speed variation. A whole number of visible tumbles avoids an orientation snap at the next cycle; membrane and pearl share translation/lift and retain containment. `getLanding(i)` exposes the final destination, while `getAnchor(i)` remains the suction foothold. `GOROGORO_TIERS` / `GOROGORO_DEFAULT_CONFIG` and `rollVariant` travel in settings and source exports, including mixed packs.
+
+Controller tests verify extra travel distance, launch lift, recoil and landing commit. `verifyContainment(false,true)` / `verifyContainment(true,true)` run the near/far GPU checks for Gorogoro through 3,200 sampled poses.
+
+Gorogoro defaults to a 10-second hunt cycle, a slower 2.4-second roll and 0.8-second landing recovery. Its higher camera tracks the solo pursuit; the automatic lure steers continuously away from bodies and projected landings with bounded acceleration, without repositioning between rolls. The membrane stays organic throughout transfer (cube deformation is disabled for this lineage). The suction rim remains fixed during transfer before peeling free into the roll. The black tier uses a dark wine-red pearl.

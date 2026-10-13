@@ -8,7 +8,7 @@ Preview: `http://127.0.0.1:5175/?specimen=cutis-maku-pearl`
 
 From `/Users/minikai/Dev/Jelly-Baby/src/cutis/`:
 
-- `swarm/config.ts`, `swarm/tiers.ts`, `swarm/controller.ts`
+- `swarm/config.ts`, `swarm/tiers.ts`, `swarm/controller.ts`, `swarm/locomotion.ts`
 - `creature/geometry.ts`, `creature/material.ts`, `creature/hard-core.ts`
 - `creature/shaders/membrane.vert.glsl`, `creature/shaders/membrane.frag.glsl`
 
@@ -44,3 +44,5 @@ This is WebGL2/GLSL source, **not a GLB**. It uses Three.js and its ConvexGeomet
 The simulation is meters, Y-up, moving in XZ. Stalheart's spherical terrain needs a tangent-frame/terrain adapter that transforms membrane, cores and contact centers consistently. Preserve the shared core/body transfer path and padded membrane clearance; independently interpolating the core recreates the escape bug.
 
 Validation: `scripts/verify-cutis.mjs` and browser-served `scripts/verify-cutis-containment.mjs` (near/far GPU mesh clearance over 3,200 sampled poses). The lab's Export creature ZIP also supplies a standalone demo, settings, all belt presets and gameplay metadata. GPL-3.0, as in the source LICENSE. No Stalheart game files have been modified yet.
+
+Optional rolling lineage: `GOROGORO_TIERS` / `GOROGORO_DEFAULT_CONFIG` preserve Pearl tiers but add launch, one-reach-distance rolling and recovery. `getLanding(i)` is the final rolled endpoint; `getAnchor(i)` is the earlier suction foothold. Keep the shared `swarm/locomotion.ts` helper with the controller. The optional lab scene also imports `swarm/prey.ts` for continuous fleeing-lure steering; it is not needed for game-owned targeting.

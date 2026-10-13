@@ -1,10 +1,11 @@
-import { coreContact,CUTIS_TIERS,PEARL_TIERS } from './tiers.ts';
+import { coreContact,CUTIS_TIERS,PEARL_TIERS,GOROGORO_TIERS } from './tiers.ts';
+import { membranePhase,rollMotion,momentumRate } from './locomotion.ts';
 import { cycleTiming,phaseState,transferProgress,type CutisConfig } from './config.ts';
 const hash=(n:number)=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
 export class CutisSwarm{
   readonly capacity=300;
   count=1;time=0;frozen=false;mixed=false;
-  configFor(i:number){return this.mixed&&this.count>1?(this.config.pearlVariant?PEARL_TIERS:CUTIS_TIERS)[i%CUTIS_TIERS.length].values:this.config;}
+  configFor(i:number){return this.mixed&&this.count>1?(this.config.rollVariant?GOROGORO_TIERS:this.config.pearlVariant?PEARL_TIERS:CUTIS_TIERS)[i%CUTIS_TIERS.length].values:this.config;}
   setMixed(on:boolean){if(this.mixed!==on){this.mixed=on;this.reset();}}
   speedFor(i:number){return this.mixed&&this.count>1?.92+hash(i+411)*.16:1;}
   offset=new Float32Array(900);heading=new Float32Array(900);anchor=new Float32Array(900);
@@ -74,32 +75,34 @@ export class CutisSwarm{
       this.plan(i,target.x,target.z);if(!this.frozen)this.phase[i]=0;
     }
     if(this.frozen)return;this.time+=dt;
-    for(let i=0;i<this.count;i++){const k=i*3,t=this.phase[i]<.62?0:transferProgress((this.phase[i]-.62)/.23,this.configFor(i).transferAcceleration);this.occupied[k]=this.offset[k]+(this.anchor[k]-this.offset[k])*t;this.occupied[k+2]=this.offset[k+2]+(this.anchor[k+2]-this.offset[k+2])*t;}
+    for(let i=0;i<this.count;i++){const k=i*3,p=this.position(i);this.occupied[k]=p[0];this.occupied[k+2]=p[2];}
     for(let i=0;i<this.count;i++){
       if(this.idle[i]){if(Math.hypot(target.x-this.offset[i*3],target.z-this.offset[i*3+2])>this.configFor(i).r0*this.scale[i]){this.cycles[i]++;this.plan(i,target.x,target.z);this.phase[i]=0;}continue;}
       if(this.phase[i]===0)this.plan(i,target.x,target.z);
-      const timing=cycleTiming(this.duration[i]),phase=this.phase[i];
+      const config=this.configFor(i),rolling=config.rollVariant>0,timing=cycleTiming(this.duration[i]),raw=this.phase[i],phase=membranePhase(raw,config.rollVariant);
       const rate=phase<.1?.1/timing.coil:phase<.55?.45/timing.extend:phase<.62?.07/timing.anchor:phase<.85?.23/timing.transfer:.15/timing.settle;
-      this.phase[i]+=dt*rate;
-      if(phase<.55&&this.phase[i]>=.55&&this.probeCount[i]>1)this.selectProbe(i,target.x,target.z);
-      if(this.phase[i]>=1){const k=i*3;this.offset[k]=this.anchor[k];this.offset[k+2]=this.anchor[k+2];this.cycles[i]++;this.plan(i,target.x,target.z);this.phase[i]=0;}
-      const config=this.configFor(i);this.params[i*4+1]=config.cubenessPeak;this.params[i*4+2]=config.pulseSpeed;this.params[i*4+3]=config.wobble;
+      this.phase[i]+=dt*(rolling?(raw<.496?rate*.8:raw<.9?momentumRate(raw,.184/timing.transfer,.22*this.speedFor(i)/config.rollDuration):.1*this.speedFor(i)/config.landingPause):rate);
+      if(phase<.55&&membranePhase(this.phase[i],config.rollVariant)>=.55&&this.probeCount[i]>1)this.selectProbe(i,target.x,target.z);
+      if(this.phase[i]>=1){const k=i*3;const landing=this.getLanding(i);this.offset[k]=landing.x;this.offset[k+2]=landing.z;this.cycles[i]++;this.plan(i,target.x,target.z);this.phase[i]=0;}
+      this.params[i*4+1]=config.cubenessPeak;this.params[i*4+2]=config.pulseSpeed;this.params[i*4+3]=config.wobble;
     }
   }
-  position(i:number):[number,number,number]{if(this.configFor(i).coreShape>0){const {center}=this.getCoreContact(i);return [center.x,0,center.z];}const k=i*3,t=this.phase[i]<.62?0:transferProgress((this.phase[i]-.62)/.23,this.configFor(i).transferAcceleration);return [this.offset[k]+(this.anchor[k]-this.offset[k])*t,0,this.offset[k+2]+(this.anchor[k+2]-this.offset[k+2])*t];}
+  position(i:number):[number,number,number]{if(this.configFor(i).rollVariant){const c=this.getCoreContact(i).center;return [c.x,0,c.z];}if(this.configFor(i).coreShape>0){const {center}=this.getCoreContact(i);return [center.x,0,center.z];}const k=i*3,t=this.phase[i]<.62?0:transferProgress((membranePhase(this.phase[i],this.configFor(i).rollVariant)-.62)/.23,this.configFor(i).transferAcceleration);return [this.offset[k]+(this.anchor[k]-this.offset[k])*t,0,this.offset[k+2]+(this.anchor[k+2]-this.offset[k+2])*t];}
   getCoreContact(i:number){
-    const config=this.configFor(i),spec=coreContact(config),k=i*3,r=config.r0*this.scale[i],phase=this.phase[i];
+    const config=this.configFor(i),spec=coreContact(config),k=i*3,r=config.r0*this.scale[i],phase=membranePhase(this.phase[i],config.rollVariant);
     const transfer=transferProgress((phase-.62)/.23,config.transferAcceleration);
     const u=Math.max(0,Math.min(1,(transfer-config.delaySpread*.5)/Math.max(.02,1-config.delaySpread)));
     const travel=2*u-u*u,height=r*.78*((1-u)**2+u*u)+2*(1-u)*u*.014;
     const center={x:this.offset[k]+(this.anchor[k]-this.offset[k])*travel,y:height,z:this.offset[k+2]+(this.anchor[k+2]-this.offset[k+2])*travel};
     if(phase>=.85){const settle=(phase-.85)/.15,recoil=Math.exp(-6*settle)*Math.sin(settle*22)*r*.12*config.wobble;center.x=this.anchor[k]+this.heading[k]*recoil;center.z=this.anchor[k+2]+this.heading[k+2]*recoil;center.y=r*.78;}
     const radius=spec.collisionRadius*this.scale[i];if(radius>0)center.y=Math.max(center.y,radius*1.3+.018);
+    if(config.rollVariant){const motion=rollMotion(this.phase[i],this.params[i*4],r,config.wobble,config.launchHeight),dx=this.anchor[k]-this.offset[k],dz=this.anchor[k+2]-this.offset[k+2],length=Math.hypot(dx,dz)||1;if(this.phase[i]>=.496){center.x=this.offset[k]+dx/length*motion.distance;center.z=this.offset[k+2]+dz/length*motion.distance;}center.y+=motion.lift;}
     return {...spec,center,radius};
   }
   contactDamageAt(i:number,point:{x:number;y:number;z:number},unitRadius:number,dt:number){const c=this.getCoreContact(i);return !c.rammable&&Math.hypot(point.x-c.center.x,point.y-c.center.y,point.z-c.center.z)<=c.radius+Math.max(0,unitRadius)?c.contactDamagePerSecond*Math.max(0,dt):0;}
-  getState(i:number){return this.idle[i]?'REST':phaseState(this.phase[i]);}
+  getState(i:number){const c=this.configFor(i),p=this.phase[i];return this.idle[i]?'REST':c.rollVariant&&p>=.68?(p<.735?'LAUNCH':p<.9?'ROLL':'RECOVER'):phaseState(membranePhase(p,c.rollVariant));}
+  getLanding(i:number){const k=i*3,m=this.configFor(i).rollVariant?1:0;return {x:this.anchor[k]+(this.anchor[k]-this.offset[k])*m,y:0,z:this.anchor[k+2]+(this.anchor[k+2]-this.offset[k+2])*m};}
   getAnchor(i:number){return {x:this.anchor[i*3],y:this.anchor[i*3+1],z:this.anchor[i*3+2]};}
-  getStretchSegment(i:number){const k=i*3;return {from:{x:this.offset[k],y:this.configFor(i).r0*this.scale[i],z:this.offset[k+2]},to:this.getAnchor(i),vulnerable:this.phase[i]>=.1&&this.phase[i]<.62,intangible:this.phase[i]>=.62&&this.phase[i]<.85};}
+  getStretchSegment(i:number){const k=i*3,p=membranePhase(this.phase[i],this.configFor(i).rollVariant);return {from:{x:this.offset[k],y:this.configFor(i).r0*this.scale[i],z:this.offset[k+2]},to:this.getAnchor(i),vulnerable:p>=.1&&p<.62,intangible:p>=.62&&p<.85};}
   scrub(phase:number){this.frozen=true;this.idle[0]=0;this.phase[0]=Math.max(0,Math.min(.9999,phase));}
 }

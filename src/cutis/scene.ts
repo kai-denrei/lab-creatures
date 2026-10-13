@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { FleeingPrey } from './swarm/prey.ts';
 import { CutisSwarm } from './swarm/controller.ts';
 import { createHardCores } from './creature/hard-core.ts';
 import { createSwarmGeometry } from './creature/geometry.ts';
@@ -9,11 +10,11 @@ export function createCutisScene(host:HTMLElement,config:CutisConfig){
   renderer.domElement.setAttribute('aria-label','Cutis-Maku observation arena. Drag the red lure or tap the ground. Drag elsewhere to orbit.');
   const scene=new THREE.Scene();scene.background=new THREE.Color('#171c1a');
   const camera=new THREE.PerspectiveCamera(38,1,.01,100);camera.position.set(-2.5,1.8,3.6);
-  const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(.15,.2,0);controls.enableDamping=true;controls.minDistance=.55;controls.maxDistance=32;controls.maxPolarAngle=Math.PI*.46;
+  const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(.15,.2,0);if(config.rollVariant){camera.position.set(-2,11,12);controls.target.set(3,.2,3);}controls.enableDamping=true;controls.minDistance=.55;controls.maxDistance=32;controls.maxPolarAngle=Math.PI*.46;
   scene.add(new THREE.HemisphereLight('#d0d6c0','#282720',2));const key=new THREE.DirectionalLight('#ffffff',3);key.position.set(-2,5,3);scene.add(key);
   const floor=new THREE.Mesh(new THREE.CircleGeometry(12,128),new THREE.MeshStandardMaterial({color:'#343c35',roughness:.86}));floor.rotation.x=-Math.PI/2;floor.position.y=-.002;scene.add(floor);
   const grid=new THREE.GridHelper(24,48,'#586151','#454e43');grid.position.y=.001;(grid.material as THREE.Material).transparent=true;(grid.material as THREE.Material).opacity=.22;scene.add(grid);
-  const lure=new THREE.Mesh(new THREE.SphereGeometry(.045,20,12),new THREE.MeshStandardMaterial({color:'#e25b3b',emissive:'#942c18',emissiveIntensity:.6}));lure.position.set(1.3,.048,.6);scene.add(lure);
+  const lure=new THREE.Mesh(new THREE.SphereGeometry(.045,20,12),new THREE.MeshStandardMaterial({color:'#e25b3b',emissive:'#942c18',emissiveIntensity:.6}));lure.position.set(config.rollVariant?6.2:1.3,.048,config.rollVariant?5:.6);scene.add(lure);const prey=new FleeingPrey();
   const swarm=new CutisSwarm(config),model=createSwarmGeometry(swarm);scene.add(model.group);const hardCores=createHardCores(swarm);scene.add(hardCores.group);
   // Quiet contact shadows support the translucent shader without per-instance shadow maps.
   const shadowMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}',fragmentShader:'varying vec2 vUv;void main(){float r=length(vUv-.5)*2.;gl_FragColor=vec4(.015,.019,.014,(1.-smoothstep(.1,1.,r))*.42);}'});
@@ -31,8 +32,14 @@ export function createCutisScene(host:HTMLElement,config:CutisConfig){
   renderer.domElement.addEventListener('pointerup',event=>{if(held){event.stopImmediatePropagation();place(event);release();}else if(Math.hypot(event.clientX-downX,event.clientY-downY)<5)place(event);},{signal,capture:true});
   renderer.domElement.addEventListener('pointercancel',release,{signal});renderer.domElement.addEventListener('lostpointercapture',release,{signal});window.addEventListener('blur',release,{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)release();},{signal});
   const resize=()=>{const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/Math.max(1,h);camera.setViewOffset(w,h,w>900?w*.1:0,0,w,h);camera.updateProjectionMatrix();renderer.setSize(w,h);};window.addEventListener('resize',resize,{signal});resize();
-  function setCount(count:number){swarm.reset(count);const distance=count===1?4.6:Math.max(7,Math.sqrt(count)*1.1);camera.position.set(-distance*.45,distance*.55,distance*.7);controls.target.set(0,.15,0);controls.update();}
+  function setCount(count:number){swarm.reset(count);const distance=count===1?4.6:Math.max(7,Math.sqrt(count)*1.1);camera.position.set(-distance*.45,distance*.55,distance*.7);controls.target.set(0,.15,0);if(count===1&&config.rollVariant){camera.position.set(-2,11,12);controls.target.set(3,.2,3);}controls.update();}
   function draw(){
+    if(config.rollVariant&&swarm.count===1){
+      const body=swarm.position(0);
+      const dx=((body[0]+lure.position.x)*.5-controls.target.x)*.12;
+      const dz=((body[2]+lure.position.z)*.5-controls.target.z)*.12;
+      camera.position.x+=dx;camera.position.z+=dz;controls.target.x+=dx;controls.target.z+=dz;
+    }
     hardCores.update();
     model.update(camera,host.clientHeight,debug,force);shadows.count=swarm.count;
     for(let i=0;i<swarm.count;i++){const p=swarm.position(i);dummy.position.set(p[0],.002,p[2]);dummy.rotation.set(-Math.PI/2,0,0);dummy.scale.setScalar(swarm.configFor(i).r0*swarm.scale[i]*1.2);dummy.updateMatrix();shadows.setMatrixAt(i,dummy.matrix);}shadows.instanceMatrix.needsUpdate=true;
@@ -41,6 +48,9 @@ export function createCutisScene(host:HTMLElement,config:CutisConfig){
   }
   let last=performance.now(),accumulator=0,frames=0,fpsTime=last,fps=0;
   const stats={fps:0,draws:0,high:0,low:0};
-  function frame(now:number){if(stopped)return;const dt=Math.min(.05,(now-last)/1000);last=now;if(!document.hidden){accumulator+=dt;while(accumulator>=1/120){if(autoLure&&!held&&!swarm.frozen){lureTime+=1/120;const range=swarm.count===1?1.5:Math.max(2,Math.sqrt(swarm.count)*.3);lure.position.set(Math.sin(lureTime*.18+.9)*range,.048,Math.cos(lureTime*.26)*range*.7);}swarm.step(1/120,lure.position);accumulator-=1/120;}draw();frames++;if(now-fpsTime>700){fps=frames*1000/(now-fpsTime);frames=0;fpsTime=now;}stats.fps=fps;stats.draws=renderer.info.render.calls;stats.high=model.levels.filter(l=>!l.low).reduce((n,l)=>n+l.count,0);stats.low=model.levels.filter(l=>l.low).reduce((n,l)=>n+l.count,0);}else accumulator=0;}
+  function frame(now:number){if(stopped)return;const dt=Math.min(.05,(now-last)/1000);last=now;if(!document.hidden){accumulator+=dt;while(accumulator>=1/120){if(autoLure&&!held&&!swarm.frozen){lureTime+=1/120;const range=swarm.count===1?1.5:Math.max(2,Math.sqrt(swarm.count)*.3);
+      if(config.rollVariant){
+        prey.step(1/120,lure.position,swarm);
+      }else lure.position.set(Math.sin(lureTime*.18+.9)*range,.048,Math.cos(lureTime*.26)*range*.7);}swarm.step(1/120,lure.position);accumulator-=1/120;}draw();frames++;if(now-fpsTime>700){fps=frames*1000/(now-fpsTime);frames=0;fpsTime=now;}stats.fps=fps;stats.draws=renderer.info.render.calls;stats.high=model.levels.filter(l=>!l.low).reduce((n,l)=>n+l.count,0);stats.low=model.levels.filter(l=>l.low).reduce((n,l)=>n+l.count,0);}else accumulator=0;}
   return {renderer,scene,camera,controls,swarm,model,hardCores,lure,stats,draw,frame,setCount,setMixedPack:(on:boolean)=>swarm.setMixed(on),get held(){return held;},setAuto:(on:boolean)=>autoLure=on,setMove:(on:boolean)=>{moveLure=on;renderer.domElement.style.cursor=on?'crosshair':'';},setDebug:(value:number)=>debug=value,setForce:(on:boolean)=>force=on,setCage:(on:boolean)=>cage.visible=on,reset:()=>{release();swarm.reset();lureTime=0;},dispose:()=>{stopped=true;renderer.setAnimationLoop(null);abort.abort();release();controls.dispose();model.dispose();hardCores.dispose();scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const materials=Array.isArray(o.material)?o.material:[o.material];materials.forEach(m=>m.dispose());}});cageGeometry.dispose();(cage.material as THREE.Material).dispose();renderer.dispose();renderer.domElement.remove();}};
 }
