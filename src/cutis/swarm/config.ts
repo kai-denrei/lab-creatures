@@ -1,4 +1,4 @@
-export const DEFAULT_CONFIG={"cycleDuration":4,"aggression":2,"reach":15,"capAngle":10,"seekSweep":0.85,"seekCount":3,"seekRate":1,"transferAcceleration":1,"neckThin":0.5,"delaySpread":0.25,"cubenessPeak":0.9,"wobble":0.5,"r0":0.2,"noiseAmp":0.2,"breathRate":1.5,"cubenessRest":0.25,"pulseSpeed":2,"veinWidth":0.1,"skinTint":12165524,"veinTint":3679278,"pulseTint":15497546,"separation":2,"alignment":0.35,"cohesion":0.15};
+export const DEFAULT_CONFIG={"cycleDuration":4,"aggression":2,"reach":15,"capAngle":10,"seekSweep":0.85,"seekCount":3,"seekRate":1,"transferAcceleration":1,"neckThin":0.5,"delaySpread":0.25,"cubenessPeak":0.9,"wobble":0.5,"r0":0.2,"noiseAmp":0.2,"breathRate":1.5,"cubenessRest":0.25,"pulseSpeed":2,"veinWidth":0.1,"skinTint":12165524,"veinTint":3679278,"pulseTint":15497546,"separation":2,"alignment":0.35,"cohesion":0.15,membraneOpacity:1,coreShape:0,coreSize:.28,pearlVariant:0,coreTint:0xff242c,contactDamage:0,health:60};
 export type CutisConfig=typeof DEFAULT_CONFIG;
 export type CutisKey=keyof CutisConfig;
 type Control={key:CutisKey;label:string;group:string;min:number;max:number;step:number;unit:string;kind?:'color';optional?:boolean};
@@ -24,16 +24,23 @@ export const CUTIS_CONTROLS:readonly Control[]=[
   {key:'skinTint',label:'Membrane tint',group:'Surface',min:0,max:16777215,step:1,unit:'hex',kind:'color'},
   {key:'veinTint',label:'Vein tint',group:'Surface',min:0,max:16777215,step:1,unit:'hex',kind:'color'},
   {key:'pulseTint',label:'Pulse tint',group:'Surface',min:0,max:16777215,step:1,unit:'hex',kind:'color'},
+  {key:'membraneOpacity',optional:true,label:'Membrane opacity',group:'Core',min:.08,max:1,step:.01,unit:'×'},
+  {key:'coreShape',optional:true,label:'Core shape',group:'Core',min:0,max:3,step:1,unit:'shape'},
+  {key:'pearlVariant',optional:true,label:'All-pearl lineage',group:'Core',min:0,max:1,step:1,unit:'on'},
+  {key:'coreSize',optional:true,label:'Core radius',group:'Core',min:.1,max:.75,step:.01,unit:'× body'},
+  {key:'coreTint',optional:true,label:'Core color',group:'Core',min:0,max:16777215,step:1,unit:'hex',kind:'color'},
+  {key:'contactDamage',optional:true,label:'Hard contact damage',group:'Core',min:0,max:100,step:1,unit:'HP/s'},
+  {key:'health',optional:true,label:'Health',group:'Core',min:1,max:1000,step:1,unit:'HP'},
   {key:'separation',label:'Keep distance',group:'Swarm',min:0,max:6,step:.05,unit:'×'},
   {key:'alignment',label:'Heading alignment',group:'Swarm',min:0,max:2,step:.05,unit:'×'},
   {key:'cohesion',label:'Weak cohesion',group:'Swarm',min:0,max:.5,step:.01,unit:'×'},
 ];
 export const CUTIS_PRESETS={patient:{cycleDuration:2.5,aggression:.35,reach:4.2,delaySpread:.78,neckThin:.25},feral:{cycleDuration:.85,aggression:1.8,reach:4.7,delaySpread:.82,neckThin:.2},drifting:{cycleDuration:2.1,aggression:0,reach:2,delaySpread:.4,neckThin:.5}};
 export function sanitizeConfig(value:unknown):CutisConfig{
-  const result={...DEFAULT_CONFIG};if(value&&typeof value==='object')for(const c of CUTIS_CONTROLS){const n=(value as Record<string,unknown>)[c.key];if(typeof n==='number'&&Number.isFinite(n))result[c.key]=Math.min(c.max,Math.max(c.min,n));}result.seekCount=Math.round(result.seekCount);return result;
+  const result={...DEFAULT_CONFIG};if(value&&typeof value==='object')for(const c of CUTIS_CONTROLS){const n=(value as Record<string,unknown>)[c.key];if(typeof n==='number'&&Number.isFinite(n))result[c.key]=Math.min(c.max,Math.max(c.min,n));}result.seekCount=Math.round(result.seekCount);result.coreShape=Math.round(result.coreShape);result.pearlVariant=Math.round(result.pearlVariant);return result;
 }
-export function loadConfig(){try{return sanitizeConfig(JSON.parse(localStorage.getItem('cutis-maku-v4')||'null'));}catch{return {...DEFAULT_CONFIG};}}
-export function saveConfig(config:CutisConfig){try{localStorage.setItem('cutis-maku-v4',JSON.stringify(config));}catch{/* Session tuning remains available. */}}
+export function loadConfig(key='cutis-maku-v4',defaults:CutisConfig=DEFAULT_CONFIG){try{return sanitizeConfig({...defaults,...JSON.parse(localStorage.getItem(key)||'null')});}catch{return {...defaults};}}
+export function saveConfig(config:CutisConfig,key='cutis-maku-v4'){try{localStorage.setItem(key,JSON.stringify(config));}catch{/* Session tuning remains available. */}}
 export function cycleTiming(duration:number){const coil=Math.max(.12,duration*.1),remaining=Math.max(.09,duration-coil);return {coil,extend:remaining*.5,anchor:remaining*7/90,transfer:remaining*23/90,settle:remaining/6};}
 export const PHASES=[{name:'COIL',end:.1},{name:'EXTEND',end:.55},{name:'ANCHOR',end:.62},{name:'TRANSFER',end:.85},{name:'SETTLE',end:1}] as const;
 export function phaseState(phase:number){return PHASES.find(p=>phase<p.end)?.name??'SETTLE';}

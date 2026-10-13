@@ -360,7 +360,7 @@ Open `?specimen=cutis-maku` for the new independent membrane lab. A slow cap ext
 
 The lab provides solo, 12-, 100- and desktop 300-creature views, a draggable/automatic lure, Patient predator/Feral surge/Slow drifting presets, live body/transfer/surface/swarm tuning, phase scrub, state colors, stretch heatmap, projected tesseract and forced fold geometry. All groups use the same copy/paste and JSON interface as the other labs. The creature ZIP includes GLSL, TypeScript, settings, license and a standalone lil-gui demo. Shader deformation is exported as source, without a baked GLB or rig.
 
-This specimen uses the spec's **WebGL2 + instanced GLSL** path; existing specimens retain their WebGPU runtime. A closed spherical mesh joins three densely sampled cap patches. Polar rings concentrate detail in each reaching cap; matching core and membrane meshes follow the same curved centerline, preventing coarse core triangles from cutting across the sweep. Each tip flares into a rounded suction cup with distinct upper and lower surfaces and a thick rim. Each LOD has one membrane and one core InstancedMesh. Near membranes use back/front passes; far membranes skip the back pass and fine vein detail. Instance attribute buffers are reused; CPU simulation handles steering, phases and locked anchors rather than vertex deformation. The default radius is 0.2 m in a larger arena.
+This specimen uses the spec's **WebGL2 + instanced GLSL** path; existing specimens retain their WebGPU runtime. A closed spherical mesh joins three densely sampled cap patches. Polar rings concentrate detail in each reaching cap; matching core and membrane meshes follow the same curved centerline, preventing coarse core triangles from cutting across the sweep. Each tip flares into a rounded suction cup with distinct upper and lower surfaces and a thick rim. Each active tier/LOD batch has one membrane and one soft-interior InstancedMesh. Near membranes use back/front passes; far membranes skip the back pass and fine vein detail. Instance attribute buffers are reused; CPU simulation handles steering, phases and locked anchors rather than vertex deformation. The default radius is 0.2 m in a larger arena.
 
 `src/cutis/creature` owns geometry/material/GLSL, `src/cutis/swarm` owns configuration and behavior, and `src/cutis/demo/index.html` is the development standalone demo. Exported kits run from their root `index.html`. `getState`, `getAnchor` and `getStretchSegment` expose weak-point and transfer-window information. Optional bridging, severing/splitting and game collision enforcement are not implemented.
 
@@ -374,3 +374,32 @@ Color scheme presets preserve behavior values: Original membrane, Green/moss, Ye
 Cutis-Maku Hunt → Seeking appendages selects 1, 2 or 3 probes (default 3). Each probe has its own direction, reach and sweep phase. With multiple probes, the cup nearest the current prey wins when EXTEND ends; the other probes retract and transfer commits the winning cup. The anchor stays locked after selection. Changing the appendage count restarts a live search, or updates a frozen phase study in place. The count travels with copied settings and creature exports; older settings retain the current count. `getSeekingAnchors(i)` exposes the candidate cups to host programs.
 
 During transfer, the winning cup retains its settled cross-section instead of collapsing into the point used to funnel traveling tissue. Its rim expands and thickens with incoming mass, then merges into the destination body as transfer finishes.
+
+
+### Cutis-Maku-K — belt difficulty studies
+
+Open `?specimen=cutis-maku-k` (or `&tier=white` through `&tier=black`). This separate library entry and browser draft preserve the original Cutis-Maku. The **Belt difficulty** selector applies a complete size, behavior, appendage, membrane and combat preset; editing any value creates a custom variation. **Core** controls expose opacity, shape, radius, tint, contact damage and health.
+
+| Tier | Body radius | Appendages | Interior | Health | Contact HP/s |
+| --- | --- | --- | --- | --- | --- |
+| White | 0.12 m | 1 | Soft | 15 | 0 |
+| Yellow | 0.14 m | 1 | Soft | 25 | 0 |
+| Orange | 0.16 m | 2 | Soft | 40 | 0 |
+| Blue | 0.18 m | 2 | Soft | 60 | 0 |
+| Green | 0.21 m | 2 | Pearl | 100 | 8 |
+| Purple | 0.24 m | 2 | Dodecahedron | 160 | 14 |
+| Brown | 0.28 m | 3 | Inverted pyramids | 240 | 22 |
+| Black | 0.33 m | 3 | Pure red sphere | 360 | 35 |
+
+These are initial lab balance values. Higher tiers increase urgency and shorten the hunt cycle from 6 to 2.5 seconds. Hard cores are separate rigid instanced meshes: the membrane stretches, the core does not. The membrane bulges around its collision sphere. Core color and geometry are independently editable. The mixed-pack toggle replaces color-only swarms: all eight tiers appear at their actual sizes, appendage counts, core shapes, contact rules and behavior. Each creature has a stable ±8% speed variation on top of its tier cadence. Core radii are 0.28× body radius for green/brown, 0.22× for purple, and 0.18× for black; brown uses two opposed interpenetrating triangular pyramids. Switching mixed mode off restores the selected specimen, and solo mode always uses it.
+
+Stalheart's current convention uses `rammable` for the soft/hard split; both types appear on radar, while solids have larger blips and proximity warnings. `getCoreContact(i)` exposes this classification and a world-space bounding sphere. `contactDamageAt(i,point,unitRadius,dt)` computes prototype damage inside that sphere. The exported kit includes all eight presets, `gameplay.json`, and `belt-presets.json`. Actual unit health, collision response, radar rendering and deployment into Stalheart remain owned by the host game; this change does not edit that repository.
+
+
+### Pearl lineage and core containment
+
+`?specimen=cutis-maku-pearl` opens a separate saved lineage in which every hard tier uses a pearl sphere. The soft tiers stay soft; mixed packs keep the same size, speed and difficulty differences. The original K lineage retains its geometric cores. Both lineages use the reduced core sizes above.
+
+Rigid cores now follow the same delayed Bézier body center used by the surrounding hard-tier membrane, including settle recoil and floor clearance. The hard-tier surface maintains a padded volume around that center to prevent folding stalk triangles from clipping the core. Soft-tier transfer keeps its original per-vertex rear delay.
+
+`scripts/verify-cutis-containment.mjs` captures the actual GPU-deformed membrane vertices, measures the core sphere's clearance from every triangle, and checks odd/even ray containment. With Vite running, import it in the browser and call `verifyContainment()` and `verifyContainment(true)` for near/far LODs. The regression covers all four hard tiers, four seeds and 100 cycle samples per detail level (3,200 poses total). Pure controller tests also check pearl mixed packs, floor clearance and contact radii.

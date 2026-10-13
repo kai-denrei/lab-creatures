@@ -7,7 +7,7 @@ async function openPage(){
     await import('./baby-page.ts');
     document.querySelector('.actions')!.insertAdjacentHTML('afterbegin','<a class="back-link" href="./">← Specimens</a>');
     document.querySelector('.loading-card')!.insertAdjacentHTML('beforeend','<a class="index-return" href="./">← Return to specimens</a>');
-  }else if(specimen==='cutis-maku'){await import('./cutis/page.ts');}
+  }else if((specimen==='cutis-maku'||specimen==='cutis-maku-k'||specimen==='cutis-maku-pearl')){await import('./cutis/page.ts');}
   else if(specimen==='arthropod-lab'){await import('./arthropods/page.ts');}
   else if(specimen==='nih-dairia'||specimen==='creature-lab'){await import('./monster/page.ts');}
   else {await import('./landing.ts');}

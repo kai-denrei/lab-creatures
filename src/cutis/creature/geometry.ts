@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createMembraneMaterial,updateMaterial } from './material.ts';
+import { CUTIS_TIERS,PEARL_TIERS } from '../swarm/tiers.ts';
+import type { CutisConfig } from '../swarm/config.ts';
 import type { CutisSwarm } from '../swarm/controller.ts';
 const sizes={iOffset:3,iHeading:3,iAnchor:3,iState:4,iParams:4,iProbe0:3,iProbe1:3,iProbe2:3};
 export function createSwarmGeometry(swarm:CutisSwarm){
@@ -37,20 +39,34 @@ export function createSwarmGeometry(swarm:CutisSwarm){
     const material=createMembraneMaterial(swarm.config,false,low),coreMaterial=createMembraneMaterial(swarm.config,true,true);
     const membrane=new THREE.InstancedMesh(geometry,material,swarm.capacity),core=new THREE.InstancedMesh(coreGeometry,coreMaterial,swarm.capacity);
     membrane.frustumCulled=core.frustumCulled=false;membrane.renderOrder=2;core.renderOrder=1;group.add(core,membrane);
-    return {geometry,coreGeometry,material,coreMaterial,membrane,core,attributes,count:0};
+    return {geometry,coreGeometry,material,coreMaterial,membrane,core,attributes,count:0,low,preset:null as CutisConfig|null,tier:-1};
   });
+  // Batch by tier and LOD so every membrane uses its own full preset without
+  // consuming more vertex attributes or issuing one draw per creature.
+  const baseLevels=[...levels];
+  for(const [tier,preset] of CUTIS_TIERS.entries())for(const base of baseLevels){
+    const geometry=base.geometry.clone(),coreGeometry=base.coreGeometry.clone();
+    const attributes=Object.fromEntries(Object.entries(sizes).map(([name,size])=>[name,new THREE.InstancedBufferAttribute(new Float32Array(swarm.capacity*size),size).setUsage(THREE.DynamicDrawUsage)]));
+    for(const [name,attribute] of Object.entries(attributes)){geometry.setAttribute(name,attribute);coreGeometry.setAttribute(name,attribute);}
+    const material=createMembraneMaterial(preset.values,false,base.low),coreMaterial=createMembraneMaterial(preset.values,true,true);
+    const membrane=new THREE.InstancedMesh(geometry,material,swarm.capacity),core=new THREE.InstancedMesh(coreGeometry,coreMaterial,swarm.capacity);
+    membrane.frustumCulled=core.frustumCulled=false;membrane.renderOrder=2;core.renderOrder=1;group.add(core,membrane);
+    levels.push({geometry,coreGeometry,material,coreMaterial,membrane,core,attributes,count:0,low:base.low,preset:preset.values,tier});
+  }
   const position=new THREE.Vector3(),state=new Float32Array(swarm.capacity*4);
-  function update(camera:THREE.PerspectiveCamera,height:number,debug=0,force=false,multicolored=false){
+  function update(camera:THREE.PerspectiveCamera,height:number,debug=0,force=false){
     levels.forEach(l=>l.count=0);
     for(let i=0;i<swarm.count;i++){state[i*4]=swarm.phase[i];state[i*4+1]=swarm.seed[i];state[i*4+2]=swarm.scale[i];state[i*4+3]=swarm.probeCount[i]*4+swarm.chosenProbe[i];}
     const source:Record<string,Float32Array>={iOffset:swarm.offset,iHeading:swarm.heading,iAnchor:swarm.anchor,iState:state,iParams:swarm.params,iProbe0:swarm.probe0,iProbe1:swarm.probe1,iProbe2:swarm.probe2};
     for(let i=0;i<swarm.count;i++){
-      position.set(swarm.offset[i*3],swarm.config.r0,swarm.offset[i*3+2]);
-      const pixels=swarm.config.r0*swarm.scale[i]*height/(2*Math.tan(camera.fov*Math.PI/360)*Math.max(.1,camera.position.distanceTo(position)));
-      const level=levels[pixels<26?1:0],index=level.count++;
+      const config=swarm.configFor(i);
+      position.set(swarm.offset[i*3],config.r0,swarm.offset[i*3+2]);
+      const pixels=config.r0*swarm.scale[i]*height/(2*Math.tan(camera.fov*Math.PI/360)*Math.max(.1,camera.position.distanceTo(position)));
+      const batch=swarm.mixed&&swarm.count>1?2+(i%CUTIS_TIERS.length)*2:0;
+      const level=levels[batch+(pixels<26?1:0)],index=level.count++;
       for(const [name,size] of Object.entries(sizes)){const array=level.attributes[name].array;for(let k=0;k<size;k++)array[index*size+k]=source[name][i*size+k];}
     }
-    for(const l of levels){l.membrane.count=l.core.count=l.count;l.membrane.visible=l.core.visible=l.count>0;for(const a of Object.values(l.attributes)){a.clearUpdateRanges();a.addUpdateRange(0,l.count*a.itemSize);a.needsUpdate=true;}updateMaterial(l.material,swarm.config,swarm.time,debug,force,multicolored);updateMaterial(l.coreMaterial,swarm.config,swarm.time,debug,force,multicolored);}
+    for(const l of levels){const config=l.tier>=0?(swarm.config.pearlVariant?PEARL_TIERS:CUTIS_TIERS)[l.tier].values:swarm.config;l.membrane.count=l.core.count=l.count;l.membrane.visible=l.count>0;l.core.visible=l.count>0&&config.coreShape<1;for(const a of Object.values(l.attributes)){a.clearUpdateRanges();a.addUpdateRange(0,l.count*a.itemSize);a.needsUpdate=true;}updateMaterial(l.material,config,swarm.time,debug,force);updateMaterial(l.coreMaterial,config,swarm.time,debug,force);}
   }
   return {group,levels,update,dispose:()=>levels.forEach(l=>{l.geometry.dispose();l.coreGeometry.dispose();l.material.dispose();l.coreMaterial.dispose();l.membrane.dispose();l.core.dispose();})};
 }

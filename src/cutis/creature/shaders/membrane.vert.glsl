@@ -9,6 +9,7 @@ attribute vec4 iParams;
 attribute vec3 iProbe0,iProbe1,iProbe2;
 #define iProbeCount floor(iState.w/4.)
 #define iChosenProbe mod(iState.w,4.)
+uniform float uHardRadius;
 uniform float uTime,uRadius,uNoise,uBreath,uRestCube,uCap,uNeck,uDelay,uCore,uForceCube,uSeekSweep,uSeekRate,uAcceleration;
 varying vec3 vWorld,vRest,vHeading,vNormal;
 varying float vStretch,vPhase,vSeed,vLead;
@@ -42,7 +43,7 @@ vec4 deform(vec3 bodyN){
   float radius=max(.28,1.+lump*uNoise*1.7+breathe);
   // Rest attractor is deliberately subdued; only a transfer exposes the folded structure.
   float cube=max(uForceCube,uRestCube*.12+iParams.y*fold*fold);
-  vec3 rest=n*mix(radius,rounded,cube)*r;
+  vec3 rest=n*max(mix(radius,rounded,cube),uHardRadius*3.6)*r;
   // Nested cross-sections share their longitudinal coordinates and centerline.
   rest.xy*=core;
   rest.y=rest.y*.82+r*.78;rest.y=max(.012,rest.y);
@@ -89,6 +90,9 @@ vec4 deform(vec3 bodyN){
   if(phase>=.62&&phase<.85){
     vec3 chosen=iChosenProbe<.5?iProbe0:iChosenProbe<1.5?iProbe1:iProbe2;
     float delay=clamp((1.-turn(bodyN,-chosen.x).z)*.5,0.,1.)*uDelay;
+    // A rigid core and its surrounding body share one transfer clock.
+    // Vertex-specific delay could otherwise pull the shell away from the core.
+    if(uHardRadius>0.)delay=uDelay*.5;
     float u=clamp((accelerated-delay)/max(.02,1.-uDelay),0.,1.);
     vec3 end=iAnchor+orient(rest);end.y=rest.y;
     vec3 anchor=iAnchor;anchor.y=.014;
@@ -110,6 +114,17 @@ vec4 deform(vec3 bodyN){
     rest+=bodyN*r*.045*wobble*iParams.w;
     p=iAnchor+orient(rest);p.y=rest.y;
     p+=iHeading*r*.12*wobble*iParams.w;
+  }
+  if(uHardRadius>0.){
+    float bodyU=clamp((accelerated-uDelay*.5)/max(.02,1.-uDelay),0.,1.);
+    vec3 center=mix(iOffset,iAnchor,2.*bodyU-bodyU*bodyU);
+    center.y=r*.78*((1.-bodyU)*(1.-bodyU)+bodyU*bodyU)+2.*(1.-bodyU)*bodyU*.014;
+    if(phase>=.85){float settle=(phase-.85)/.15;center=iAnchor+iHeading*r*.12*exp(-6.*settle)*sin(settle*22.)*iParams.w;center.y=r*.78;}
+    float lift=max(0.,r*uHardRadius*1.3+.018-center.y);center.y+=lift;p.y+=lift;
+    // Protect a padded volume around the synchronized core, including the
+    // triangles spanning neighboring vertices as withdrawn stalks fold inward.
+    vec3 delta=p-center;float distance=length(delta),shell=r*uHardRadius*2.;
+    if(distance<shell)p=center+normalize(delta+vec3(0.,.000001,0.))*shell;
   }
   p.y=max(.009,p.y);
   float stretch=1.+lead*extension*probe.y/max(.01,r)*(1.-smoothstep(.66,.85,phase))+fold*2.;

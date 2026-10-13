@@ -15,11 +15,12 @@ import { SoftBody } from '../physics/soft-body.js';
 import { createMonsterAppearance,updateMonsterAppearance } from '../monster/appearance.ts';
 import { createPlayerCreature } from '../game/player-creature.ts';
 export async function renderThumbnail(id:string){
-  if(id==='cutis-maku'){
+  if(id==='cutis-maku'||id==='cutis-maku-k'||id==='cutis-maku-pearl'){
     const [{createCutisScene},{DEFAULT_CONFIG}]=await Promise.all([import('../cutis/scene.ts'),import('../cutis/swarm/config.ts')]);
     document.body.innerHTML='<main id="cutis-thumbnail" style="width:640px;height:420px"></main>';document.body.style.cssText='margin:0;overflow:hidden';
-    const lab=createCutisScene(document.querySelector<HTMLElement>('#cutis-thumbnail')!,{...DEFAULT_CONFIG});lab.lure.visible=false;
-    lab.camera.position.set(-.85,.6,1.35);lab.controls.target.set(.3,.14,.2);lab.controls.update();lab.swarm.scrub(.42);lab.draw();return;
+    const settings=id==='cutis-maku-pearl'?(await import('../cutis/swarm/tiers.ts')).PEARL_DEFAULT_CONFIG:id==='cutis-maku-k'?(await import('../cutis/swarm/tiers.ts')).K_DEFAULT_CONFIG:DEFAULT_CONFIG;
+    const lab=createCutisScene(document.querySelector<HTMLElement>('#cutis-thumbnail')!,{...settings});lab.lure.visible=false;
+    if(id!=='cutis-maku')lab.camera.position.set(-1.25,.85,1.9);else lab.camera.position.set(-.85,.6,1.35);lab.controls.target.set(.3,.14,.2);lab.controls.update();lab.swarm.scrub(.42);lab.draw();return;
   }
   const variant=LAB_VARIANTS.find(v=>v.id===id),soft=CREATURE_VARIANTS.find(v=>v.id===id);
   let object:THREE.Object3D;

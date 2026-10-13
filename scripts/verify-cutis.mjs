@@ -58,3 +58,43 @@ for(const count of [2,3]){
 const editable=new CutisSwarm({...DEFAULT_CONFIG,seekCount:1});editable.scrub(.4);editable.config.seekCount=3;editable.step(1/120,{x:3,z:1});assert.equal(editable.getSeekingAnchors(0).length,3);assert.equal(editable.frozen,true);assert(Math.abs(editable.phase[0]-.4)<1e-6,'count updates frozen study without losing phase');
 assert.equal(sanitizeConfig({seekCount:2.6}).seekCount,3);
 console.log('PASS 1–3 appendages, distinct directions/reaches, every candidate can win, late prey selection, locked transfer and frozen count editing');
+
+const {CUTIS_TIERS,K_DEFAULT_CONFIG,coreContact,selectedTier}=await import('../src/cutis/swarm/tiers.ts');
+assert.deepEqual(CUTIS_TIERS.map(t=>t.id),['white','yellow','orange','blue','green','purple','brown','black']);
+for(let index=0;index<CUTIS_TIERS.length;index++){
+ const tier=CUTIS_TIERS[index],config={...tier.values},swarm=new CutisSwarm(config),contact=swarm.getCoreContact(0);
+ assert.equal(selectedTier(config),tier.id);assert.equal(contact.rammable,index<4);assert.equal(contact.proximityWarning,index>=4);
+ assert.equal(contact.radarBlipSize,index<4?2.5:4);
+ assert.equal(swarm.contactDamageAt(0,contact.center,0,.5),index<4?0:config.contactDamage*.5);
+ assert.equal(swarm.contactDamageAt(0,{x:99,y:99,z:99},0,1),0);
+ assert.equal(swarm.contactDamageAt(0,contact.center,0,-1),0);
+ if(index){assert(config.r0>CUTIS_TIERS[index-1].values.r0);assert(config.health>CUTIS_TIERS[index-1].values.health);assert(config.cycleDuration<CUTIS_TIERS[index-1].values.cycleDuration);}
+ assert.deepEqual(readSettings(JSON.stringify(settingsDocument('cutis-maku','cutis-maku-k',CUTIS_CONTROLS,config)),'cutis-maku',CUTIS_CONTROLS),config);
+ for(let tick=0;tick<600;tick++){swarm.step(1/120,{x:2,z:1});const c=swarm.getCoreContact(0);assert(Object.values(c.center).every(Number.isFinite));assert.equal(c.radius,config.coreShape?config.r0*config.coreSize*swarm.scale[0]:0,'core remains rigid through transfer');}
+}
+assert.equal(K_DEFAULT_CONFIG.coreTint,0xff0000);assert.equal(K_DEFAULT_CONFIG.seekCount,3);assert.equal(CUTIS_TIERS[0].values.seekCount,1);
+saveConfig(K_DEFAULT_CONFIG,'cutis-maku-k-v1');assert.deepEqual(loadConfig('cutis-maku-k-v1',K_DEFAULT_CONFIG),K_DEFAULT_CONFIG);assert.equal(loadConfig().reach,16,'K draft leaves original draft alone');
+assert.equal(coreContact({...K_DEFAULT_CONFIG,coreShape:0}).contactDamagePerSecond,0);
+console.log('PASS eight belt tiers, increasing size/health/urgency, rigid core contact damage, radar semantics, settings export and isolated K drafts');
+
+assert.equal(K_DEFAULT_CONFIG.coreShape,3,'black is a sphere');assert(CUTIS_TIERS[5].values.coreSize<CUTIS_TIERS[4].values.coreSize,'purple core smaller');
+for(const count of [12,100,300]){
+ const swarm=new CutisSwarm({...K_DEFAULT_CONFIG});swarm.reset(count);swarm.setMixed(true);
+ assert.equal(new Set(Array.from({length:count},(_,i)=>swarm.configFor(i).skinTint)).size,8);
+ assert.equal(new Set(Array.from({length:count},(_,i)=>swarm.speedFor(i))).size,count,'individual speed variation');
+ for(let i=0;i<count;i++){assert.equal(swarm.configFor(i),CUTIS_TIERS[i%8].values);assert.equal(swarm.probeCount[i],CUTIS_TIERS[i%8].values.seekCount);}
+ for(let tick=0;tick<500;tick++)swarm.step(1/120,{x:3,z:2});
+ assert(swarm.offset.every(Number.isFinite)&&swarm.phase.every(Number.isFinite));
+ for(let i=0;i<count;i++)assert.equal(swarm.getCoreContact(i).rammable,i%8<4);
+ swarm.setMixed(false);for(let i=0;i<count;i++){assert.equal(swarm.configFor(i),swarm.config);assert.equal(swarm.probeCount[i],3);}
+ swarm.setMixed(true);swarm.reset(1);assert.equal(swarm.configFor(0),swarm.config,'solo stays selected specimen');
+}
+console.log('PASS mixed 12/100/300 packs, all eight actual tiers, per-creature speed, contact consistency and toggle/solo restoration');
+
+const {PEARL_TIERS,PEARL_DEFAULT_CONFIG}=await import('../src/cutis/swarm/tiers.ts');
+assert.deepEqual(PEARL_TIERS.map(t=>t.values.coreShape),[0,0,0,0,3,3,3,3]);
+assert.equal(K_DEFAULT_CONFIG.coreSize,.18);assert(CUTIS_TIERS.slice(4).every(t=>t.values.coreSize<=.28));
+const pearlSwarm=new CutisSwarm({...PEARL_DEFAULT_CONFIG});pearlSwarm.reset(100);pearlSwarm.setMixed(true);
+for(let i=0;i<100;i++)assert.equal(pearlSwarm.configFor(i).coreShape,i%8<4?0:3);
+for(const tier of CUTIS_TIERS.filter(t=>t.hard)){const s=new CutisSwarm({...tier.values});for(let p=0;p<1;p+=.005){s.scrub(p);const c=s.getCoreContact(0);assert(c.center.y-c.radius>.009,'core clears the floor throughout transfer');}}
+console.log('PASS smaller cores, synchronized contact path, floor clearance and all-pearl mixed lineage');

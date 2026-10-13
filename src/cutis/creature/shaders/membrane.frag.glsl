@@ -1,7 +1,6 @@
 uniform float uTime,uPulse,uVeinWidth,uCore,uDebug,uLow;
 uniform vec3 uSkin,uVein,uGlow;
-uniform float uMulticolored;
-uniform vec3 uPaletteSkin[7],uPaletteVein[7],uPaletteGlow[7];
+uniform float uOpacity;
 varying vec3 vWorld,vRest,vHeading,vNormal;
 varying float vStretch,vPhase,vSeed,vLead;
 vec3 hash3(vec3 p){return fract(sin(vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6))))*43758.5453);}
@@ -14,11 +13,7 @@ float veinField(vec3 p){
   return sqrt(second)-sqrt(first);
 }
 void main(){
-  // Stable per-creature seed keeps the palette unchanged across hops and LODs.
-  int palette=int(mod(floor(vSeed*17.),7.));
-  vec3 skin=uMulticolored>.5?uPaletteSkin[palette]:uSkin;
-  vec3 veinTint=uMulticolored>.5?uPaletteVein[palette]:uVein;
-  vec3 glow=uMulticolored>.5?uPaletteGlow[palette]:uGlow;
+  vec3 skin=uSkin,veinTint=uVein,glow=uGlow;
   vec3 N=normalize(vNormal);if(!gl_FrontFacing)N=-N;
   vec3 V=normalize(cameraPosition-vWorld),L=normalize(vec3(-.5,1.,.7));
   float rim=pow(1.-abs(dot(N,V)),3.);
@@ -42,6 +37,7 @@ void main(){
   float window=pow(max(0.,dot(reflected,normalize(vec3(-.4,1.,.7)))),32.);
   color+=vec3(.85,.93,1.)*window*.9+glow*pulse*gate*vein*.7;
   float alpha=(mix(.25,.85,thick)+rim*.19)*(gl_FrontFacing?.75:.4);
+  if(uCore<.5)alpha*=uOpacity;
   if(uCore>.5){vec3 coreTint=min(veinTint,skin*.45);color=mix(coreTint*.28,coreTint*.9,diffuse)+glow*pulse*.06;alpha=1.;}
   if(uDebug>.5&&uDebug<1.5){color=vPhase<.1?vec3(.9,.65,.2):vPhase<.55?vec3(.3,.7,.8):vPhase<.62?vec3(.95,.3,.2):vPhase<.85?vec3(.7,.35,.9):vec3(.45,.8,.4);alpha=.9;}
   if(uDebug>1.5){color=mix(vec3(.1,.3,.8),vec3(1.,.2,.05),clamp((vStretch-1.)/5.,0.,1.));alpha=.95;}
