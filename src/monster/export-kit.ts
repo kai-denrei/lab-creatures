@@ -9,7 +9,7 @@ import type { MotionSettings } from './motion-settings.ts';
 
 const sources=import.meta.glob<string>([
   '../../LICENSE',
-  './portable.ts','./behavior.ts','./gait.ts','./pursuit.ts','./motion-settings.ts','./appearance.ts','./model.ts','./auto-lure.ts','./arena.ts','./feeding.ts','./prey.ts','./skin.ts','./traction.ts','./limb-separation.ts','./cradle.ts','./variants.ts','./dorsal.ts',
+  './portable.ts','./behavior.ts','./gait.ts','./pursuit.ts','./motion-settings.ts','./appearance.ts','./model.ts','./auto-lure.ts','./arena.ts','./feeding.ts','./prey.ts','./skin.ts','./traction.ts','./limb-separation.ts','./cradle.ts','./variants.ts','./dorsal.ts','./biomass.ts',
   '../physics/soft-body.js','../physics/soft-body-kernel.js','../physics/deform-surface.js','../physics/constants.js','../physics/cage-model.ts',
   '../game/fixed-step.ts','../graphics/renderer.ts','../../scripts/native/soft-body-kernel.c','../../scripts/build-kernel.mjs','../../scripts/build-monster.mjs','../../scripts/model-cage.mjs',
 ],{query:'?raw',import:'default'});

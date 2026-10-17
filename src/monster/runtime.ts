@@ -51,7 +51,7 @@ export async function startMonster(stage:(message:string)=>void,fail:(reason:unk
       if(steps){if(!body.isFinite())throw new Error('Nih-Dairia physics produced an invalid state');body.updateSurface();}
       updateMonsterAppearance(monster);
       prey.update(behavior.feeding);
-      if(previousState!==behavior.state){previousState=behavior.state;status.textContent=behavior.state;note.textContent=descriptions[behavior.state];}
+      if(previousState!==behavior.state){previousState=behavior.state;status.textContent=behavior.state;note.textContent=behavior.feeding.viscous&&behavior.state==='covering'?'Sticky biomass piles up at contact, then folds over the prey.':descriptions[behavior.state];}
       input.update();input.controls.update();renderer.render(scene,camera);
     }catch(error){fail(error);}
   });

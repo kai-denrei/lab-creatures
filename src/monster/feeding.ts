@@ -17,20 +17,37 @@ export class FeedingCycle {
   imprint=0;
   meals=0;
   skinCoverage=0;
+  /** Ovum accumulates tissue at contact before the covering can finish. */
+  viscous=false;
+  biomass=0;
+  readonly contactDirection=new Vector3(1,0,0);
+  /** Optional game-owned clock; reuses the lab's physical cradle/drop/imprint poses. */
+  scriptedProgress:number|null=null;
   private concealed=false;
   private elapsed=0;
   private dwell=0;
   get locked(){return this.phase!=='hunting';}
   get shape(){return PREY_SHAPES[(this.phase==='recovering'?Math.max(0,this.meals-1):this.meals)%PREY_SHAPES.length];}
   get visible(){return this.scale>.001&&!this.concealed;}
-  reset(target:Vector3){this.phase='hunting';this.elapsed=0;this.dwell=0;this.drop=0;this.imprint=0;this.scale=1;this.meals=0;this.skinCoverage=0;this.concealed=false;this.preyPosition.copy(target);}
+  reset(target:Vector3){this.scriptedProgress=null;this.phase='hunting';this.elapsed=0;this.dwell=0;this.drop=0;this.imprint=0;this.scale=1;this.meals=0;this.skinCoverage=0;this.biomass=0;this.concealed=false;this.preyPosition.copy(target);}
   step(h:number,target:Vector3,center:Vector3,canCapture:boolean,bodyOnFloor=true,wrapReady=true){
+    if(this.scriptedProgress!==null){
+      const p=Math.max(0,Math.min(1,this.scriptedProgress));
+      if(!this.locked)this.capturedPosition.copy(target);
+      target.copy(this.capturedPosition);this.preyPosition.copy(target);
+      this.phase=p<.24?'cradling':p<.36?'covering':p<.58?'dropping':p<.9?'absorbing':'recovering';
+      this.drop=smooth((p-.36)/.22)*(1-smooth((p-.9)/.1));
+      this.imprint=smooth((p-.42)/.16)*(1-smooth((p-.7)/.2));
+      this.skinCoverage=smooth((p-.24)/.12);this.scale=1-smooth((p-.5)/.4);this.concealed=p>=.58;
+      this.biomass=this.viscous?smooth((p-.14)/.4)*(1-smooth((p-.75)/.25)):0;
+      return;
+    }
     this.elapsed+=h;
     if(this.phase==='hunting'){
       this.preyPosition.copy(target);this.scale=1;this.drop=0;this.imprint=0;
       const close=Math.hypot(target.x-center.x,target.z-center.z)<.075;
       this.dwell=this.enabled&&canCapture&&close?this.dwell+h:0;
-      if(this.dwell>=.10){this.capturedPosition.copy(target);this.phase='cradling';this.elapsed=0;this.dwell=0;}
+      if(this.dwell>=.10){this.capturedPosition.copy(target);this.contactDirection.subVectors(target,center).setY(0);if(this.contactDirection.lengthSq()<1e-8)this.contactDirection.set(1,0,0);this.contactDirection.normalize();this.phase='cradling';this.elapsed=0;this.dwell=0;}
       return;
     }
     // Keep the sensory target fixed until the new prey is spawned.
@@ -38,6 +55,7 @@ export class FeedingCycle {
     if(this.phase==='cradling'){
       this.drop=0;this.imprint=0;
       this.dwell=wrapReady?this.dwell+h:0;
+      if(this.viscous&&wrapReady)this.biomass=Math.min(.22,this.biomass+h*.18);
       if(this.elapsed>=1.4&&this.dwell>=.12){this.phase='covering';this.elapsed=0;this.dwell=0;}
     }else if(this.phase==='covering'){
       // Finish getting on top before lowering; the ball never travels to the body.
@@ -48,8 +66,11 @@ export class FeedingCycle {
       this.dwell=error<.008?this.dwell+h:error>.014?0:Math.max(0,this.dwell-h*.5);
       // Wrap while the torso finishes settling, before it can intersect the prey.
       // Both appearance and concealment are one-way until a new prey spawns.
-      this.skinCoverage=Math.max(this.skinCoverage,smooth(this.dwell/.16));
-      if(this.dwell>=.16&&error<.010){this.phase='dropping';this.elapsed=0;this.dwell=0;}
+      if(this.viscous){
+        this.biomass=Math.min(1,this.biomass+h*.38);
+        this.skinCoverage=Math.max(this.skinCoverage,smooth((this.biomass-.12)/.88));
+      }else this.skinCoverage=Math.max(this.skinCoverage,smooth(this.dwell/.16));
+      if(this.dwell>=.16&&error<.010&&(!this.viscous||this.biomass>=1)){this.phase='dropping';this.elapsed=0;this.dwell=0;}
     }else if(this.phase==='dropping'){
       this.skinCoverage=1;
       this.drop=smooth(this.elapsed/.75);
@@ -59,9 +80,10 @@ export class FeedingCycle {
     }else if(this.phase==='absorbing'){
       // Hold the recognizable round outline before relaxing it into flat tissue.
       this.drop=1;this.scale=0;this.imprint=1-smooth((this.elapsed-.7)/1.1);
+      if(this.viscous)this.biomass=1-smooth((this.elapsed-.5)/1.45);
       if(this.elapsed>=1.95){this.imprint=0;this.meals++;this.phase='recovering';this.elapsed=0;}
     }else if(this.phase==='recovering'){
-      this.drop=1-smooth(this.elapsed/.8);this.imprint=0;this.scale=0;
+      this.drop=1-smooth(this.elapsed/.8);this.imprint=0;this.scale=0;this.biomass=0;
       if(this.elapsed>=.95){
         this.spawn(target,center);this.preyPosition.copy(target);this.skinCoverage=0;this.concealed=false;this.phase='spawning';this.elapsed=0;
       }

@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { attribute, uniform, mix } from 'three/tsl';
+import { attribute, uniform, mix, positionLocal, smoothstep } from 'three/tsl';
 import { tissueColors } from './skin.ts';
 import type { FeedingCycle } from './feeding.ts';
 
@@ -61,18 +61,22 @@ function wrappedGeometry(shape:PreyShape){
   return geometry;
 }
 export function createPrey(){
-  const coverage=uniform(0),red=new THREE.Color('#c94d38');
+  const coverage=uniform(0),viscous=uniform(0),direction=uniform(new THREE.Vector3(1,0,0)),red=new THREE.Color('#c94d38');
   // One precompiled material blends the original surface into opaque tissue.
   // No transparent overlay, material swap, or geometry shrink during ingestion.
   const material=new THREE.MeshPhysicalNodeMaterial({metalness:.45,roughness:.3,emissive:'#751e16',emissiveIntensity:.2,
     ior:1.37,clearcoatRoughness:.16});
   material.clearcoatNode=coverage.mul(.65);
-  material.colorNode=mix(uniform(red),attribute('skinColor','vec3'),coverage);
+  const contactCoordinate=positionLocal.xz.dot(direction.xz).mul(.65).add(positionLocal.y.mul(.35));
+  const front=coverage.mul(.04).sub(.02);
+  const coated=smoothstep(front.sub(.003),front.add(.003),contactCoordinate).oneMinus();
+  material.colorNode=mix(uniform(red),attribute('skinColor','vec3'),mix(coverage,coated,viscous));
   const mesh=new THREE.Mesh(wrappedGeometry('sphere'),material);
   mesh.castShadow=true;mesh.receiveShadow=true;let shape:PreyShape='sphere';
   return {mesh,update(feeding:FeedingCycle){
     if(shape!==feeding.shape){shape=feeding.shape;mesh.geometry.dispose();mesh.geometry=wrappedGeometry(shape);}
     const wrap=feeding.skinCoverage;coverage.value=wrap;
+    viscous.value=feeding.viscous?1:0;direction.value.copy(feeding.contactDirection);
     material.metalness=.45*(1-wrap);material.roughness=.3-.04*wrap;
     material.emissiveIntensity=.2*(1-wrap);
     mesh.position.copy(feeding.preyPosition);mesh.scale.setScalar(feeding.scale);mesh.visible=feeding.visible;

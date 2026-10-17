@@ -6,16 +6,18 @@ import type { CutisSwarm } from '../cutis/swarm/controller.ts';
 import { PHYS } from '../physics/constants.js';
 
 /** The lab's physical reach / plant / pull gait, controlled by keyboard intent. */
-export async function createReed(radius:number){
-  const body=new SoftBody(await loadMonsterCage('reed')),rig=new MonsterPlayer(body),scale=radius/.015;
+export type EvasionCreature='reed'|'nih-dairia';
+export async function createEvasionCreature(radius:number,kind:EvasionCreature='reed'){
+  const body=new SoftBody(await loadMonsterCage(kind)),rig=new MonsterPlayer(body),scale=radius/.015;
   const geometry=body.surface.geometry;
   const material=new THREE.MeshPhysicalMaterial({color:0xc9e6ae,roughness:.32,metalness:0,clearcoat:.8,transparent:true,opacity:.95,side:THREE.DoubleSide});
   const coolColor=new THREE.Color(0xc9e6ae),hotColor=new THREE.Color(0xdf2534);
   const mesh=new THREE.Mesh(geometry,material);mesh.frustumCulled=false;mesh.scale.setScalar(scale);
   const originalIndex=Array.from(geometry.index!.array as Uint32Array),rest=body.surface.positions.slice();
-  const parts=Array.from({length:5},()=>[] as number[]);
+  const limbCount=body.cage.limbCount??(kind==='reed'?4:6);
+  const parts=Array.from({length:limbCount+1},()=>[] as number[]);
   for(let i=0;i<originalIndex.length;i+=3){const ids=originalIndex.slice(i,i+3),x=ids.reduce((n,v)=>n+rest[v*3],0)/3,z=ids.reduce((n,v)=>n+rest[v*3+2],0)/3;
-    const part=Math.hypot(x,z)<.029?4:(Math.round(Math.atan2(z,x)/(Math.PI/2))+4)%4;parts[part].push(...ids);}
+    const part=Math.hypot(x,z)<.029?limbCount:(Math.round(Math.atan2(z,x)/(Math.PI*2/limbCount))+limbCount)%limbCount;parts[part].push(...ids);}
   const debris=new THREE.Group(),fragments:{mesh:THREE.Mesh<THREE.BufferGeometry,THREE.MeshPhysicalMaterial>;center:THREE.Vector3}[]=[];
   let accumulator=0,cut=0,struggle=0,lastFragmentTime=0;
   const normalSettings={...rig.motion.settings};
@@ -25,10 +27,24 @@ export async function createReed(radius:number){
     body.updateSurface();
   }
   reset();
-  return {mesh,debris,body,rig,reset,
-    step(dt:number,dx:number,dz:number,speed:number){
+  return {mesh,debris,body,rig,reset,limbCount,kind,
+    step(dt:number,dx:number,dz:number,speed:number,restrained=false,feedingProgress:number|null=null){
+      if(feedingProgress!==null){
+        const motion=rig.motion;
+        if(motion.feeding.scriptedProgress===null){
+          motion.target.copy(motion.torsoCenter);motion.target.y=.012;
+          motion.gait.settle();motion.traction.reset();motion.pursuit.reset();
+        }
+        motion.feeding.scriptedProgress=feedingProgress;motion.active=true;struggle=0;rig.move.set(0,0,0);
+        accumulator+=dt;
+        while(accumulator>=PHYS.step){motion.step(PHYS.step);body.step(PHYS.step);accumulator-=PHYS.step;}
+        return {x:0,z:0};
+      }
+      if(rig.motion.feeding.scriptedProgress!==null){
+        rig.motion.feeding.reset(rig.motion.target);rig.motion.cradle.reset();rig.motion.gait.settle();rig.motion.pursuit.reset();
+      }
       if(speed<=0){struggle=0;return {x:0,z:0};}
-      struggle=speed<.3?1:0;
+      struggle=restrained?1:0;
       Object.assign(rig.motion.settings,normalSettings);
       if(struggle){
         rig.motion.settings.stretch*=.5;rig.motion.settings.speed*=.25;
@@ -52,7 +68,7 @@ export async function createReed(radius:number){
       mesh.position.x+=tremor*(Math.sin(time*17)*.007+Math.sin(time*29.3)*.003);
       mesh.position.z+=tremor*(Math.sin(time*13.1)*.006+Math.sin(time*23.7)*.003);
       mesh.position.y+=tremor*(1+Math.sin(time*9.7))*.004;
-      while(cut<legsCut){
+      while(cut<Math.min(limbCount,legsCut)){
         const pieceGeometry=geometry.clone();pieceGeometry.setIndex(parts[cut]);
         const pieceMaterial=material.clone();pieceMaterial.opacity=.95;
         const piece=new THREE.Mesh(pieceGeometry,pieceMaterial);piece.position.copy(mesh.position);piece.scale.setScalar(scale);debris.add(piece);

@@ -28,7 +28,10 @@
     "test:arthropods": "node --experimental-strip-types scripts/verify-arthropods.mjs",
     "test:settings": "node --experimental-strip-types scripts/verify-settings.mjs",
     "test:cutis": "node --experimental-strip-types scripts/verify-cutis.mjs",
-    "test:evasion": "node --experimental-strip-types scripts/verify-evasion.mjs"
+    "test:cutisling": "node --experimental-strip-types scripts/verify-cutisling.mjs",
+    "test:inago": "node --experimental-strip-types scripts/verify-inago.mjs",
+    "test:evasion": "node --experimental-strip-types scripts/verify-evasion.mjs",
+    "test:cutisling-v2": "node --experimental-strip-types scripts/verify-cutisling-v2.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

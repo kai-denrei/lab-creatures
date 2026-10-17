@@ -159,3 +159,57 @@ assert(!rendered.mesh.visible,'late render cannot flash the original prey');
 skipped.reset(same);rendered.update(skipped);
 assert(rendered.mesh.visible&&skipped.skinCoverage===0,'reset restores a fresh red prey');
 rendered.mesh.geometry.dispose();rendered.mesh.material.dispose();
+
+// Evasion owns the meal clock but uses the same physical feeding muscles on both actors.
+for(const variant of ['reed','nih-dairia']){
+  const data=readFileSync(`src/assets/model/${variant}.bin`);
+  const actor=new SoftBody(parseCage(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength),JSON.parse(readFileSync(`src/assets/model/${variant}.json`,'utf8'))));
+  const motion=new MonsterBehavior(actor);motion.active=false;motion.feeding.enabled=false;
+  for(let i=0;i<160;i++){motion.step(PHYS.step);actor.step(PHYS.step);}
+  const standingY=motion.torsoCenter.y;
+  motion.target.copy(motion.torsoCenter);motion.target.y=.012;motion.active=true;
+  let loweredY=standingY;const stages=new Set();
+  for(let i=0;i<Math.ceil(5/PHYS.step);i++){
+    motion.feeding.scriptedProgress=i*PHYS.step/5;
+    motion.step(PHYS.step);actor.step(PHYS.step);assert(actor.isFinite());assert(actor.lastMinJacobian>=.12);
+    stages.add(motion.feeding.phase);
+    if(motion.feeding.phase==='absorbing')loweredY=Math.min(loweredY,motion.torsoCenter.y);
+  }
+  assert(standingY-loweredY>.01,`${variant} physically lowers its torso during the scripted meal`);
+  assert(['cradling','covering','dropping','absorbing','recovering'].every(phase=>stages.has(phase)));
+  motion.feeding.reset(motion.target);assert.equal(motion.feeding.scriptedProgress,null);assert.equal(motion.feeding.phase,'hunting');
+  console.log('PASS Evasion physical feeding',variant,{standingY,loweredY});
+}
+
+// Ovum keeps the prey full-sized while connected wet folds accumulate on it.
+const ovumData=readFileSync('src/assets/model/ovum.bin');
+const ovumCage=parseCage(ovumData.buffer.slice(ovumData.byteOffset,ovumData.byteOffset+ovumData.byteLength),JSON.parse(readFileSync('src/assets/model/ovum.json','utf8')));
+ovumCage.variant='ovum';
+const ovumBody=new SoftBody(ovumCage),ovum=new MonsterBehavior(ovumBody);
+const {createBiomassFlow}=await import('../src/monster/biomass.ts');
+const honey=createBiomassFlow(ovumBody,ovum.feeding);assert(ovum.feeding.viscous);
+ovum.active=false;for(let i=0;i<300;i++){ovum.step(PHYS.step);ovumBody.step(PHYS.step);}
+ovum.target.set(ovum.torsoCenter.x+.008,.012,ovum.torsoCenter.z);const fixedPrey=ovum.target.clone();ovum.active=true;
+let smallPile=0,largePile=0,smallHeight=0,largeHeight=0,coverStarted=-1,dropStarted=-1;
+for(let i=0;i<2400;i++){
+  ovum.step(PHYS.step);ovumBody.step(PHYS.step);assert(ovumBody.isFinite());assert(ovumBody.lastMinJacobian>=.12);
+  if(ovum.feeding.phase==='covering'&&coverStarted<0)coverStarted=i;
+  if(ovum.feeding.phase==='dropping'&&dropStarted<0){dropStarted=i;assert.equal(ovum.feeding.biomass,1,'the contact tissue builds fully before the torso descends');}
+  if(['cradling','covering','dropping'].includes(ovum.feeding.phase)){assert.equal(ovum.feeding.scale,1);assert(ovum.feeding.preyPosition.distanceTo(fixedPrey)<1e-9);}
+  if(i%24===0){
+    ovumBody.updateSurface();honey.update();
+    if(honey.mesh.visible){
+      const positions=honey.mesh.geometry.attributes.position.array,number=honey.mesh.count;
+      assert(number>0&&number<=honey.mesh.geometry.attributes.position.count);
+      let top=-Infinity;
+      for(let j=0;j<number*3;j+=3){assert(Number.isFinite(positions[j]+positions[j+1]+positions[j+2]));const y=positions[j+1]*.055+fixedPrey.y;assert(y>=.00099,'wet tissue remains above the table');top=Math.max(top,y);}
+      if(ovum.feeding.phase==='covering'&&ovum.feeding.biomass<.25){smallPile=number;smallHeight=top;}
+      if(ovum.feeding.phase==='covering'&&ovum.feeding.biomass>.9){largePile=number;largeHeight=top;}
+    }
+  }
+  if(ovum.feeding.phase==='spawning')break;
+}
+assert.equal(ovum.feeding.meals,1);assert(largePile>smallPile*2,'biomass accumulates as a larger connected surface');assert(largeHeight>smallHeight+.004,'successive folds stack upward at contact');
+assert((dropStarted-coverStarted)*PHYS.step>2,'viscous covering visibly takes time');honey.update();assert(!honey.mesh.visible,'the contact mound resolves after digestion');
+ovum.reset();assert(ovum.feeding.viscous&&ovum.feeding.biomass===0);honey.mesh.geometry.dispose();honey.mesh.material.dispose();
+console.log('PASS Ovum contact accumulation, increasing pile height, full-sized stationary prey, delayed coverage, stable physics and resolution',{smallPile,largePile,smallHeight,largeHeight});

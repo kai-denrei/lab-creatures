@@ -1,6 +1,9 @@
 import { CREATURE_VARIANTS } from '../monster/variants.ts';
 import { LAB_VARIANTS } from '../arthropods/variants.ts';
 export const SPECIMENS=[
+  {id:'cutisling-v2',name:'Cutisling v2',family:'Collectives',description:'A new motion study with a persistent membrane, adjustable particle count and controls to isolate stutter. Cutisling v1 is preserved separately.',url:'?specimen=cutisling-v2'},
+  {id:'cutisling',name:'Cutisling v1',family:'Collectives',description:'Inago’s flocking motion beneath one continuous veined membrane. The skin expands with searching fronts and contracts as the body gathers.',url:'?specimen=cutisling'},
+  {id:'inago',name:'Inago',family:'Collectives',description:'One ominous ground organism. Hundreds of armored fragments migrate, spread into searching fronts, and coalesce into a dense living mass.',url:'?specimen=inago'},
   {id:'evasion-game',name:'Evasion Game',family:'Playground',description:'Control Reed with WASD. Escape twelve rolling Gorogoro: avoid slowing appendages, body pins and phagocytosis.',url:'?specimen=evasion-game'},
   {id:'cutis-gorogoro',name:'Cutis-gorogoro',family:'Membranes',description:'A pearl-bearing membrane that launches from its foothold, rolls another full reach, and recoils into rest.',url:'?specimen=cutis-gorogoro'},
   {id:'cutis-maku-pearl',name:'Cutis-Maku · Pearl',family:'Membranes',description:'The eight belt tiers with smaller pearl spheres inside every hard-bodied creature.',url:'?specimen=cutis-maku-pearl'},

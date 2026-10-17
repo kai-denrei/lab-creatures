@@ -40,6 +40,7 @@ export class MonsterBehavior {
   readonly body:SoftBody;
   constructor(body:SoftBody,settings:MotionSettings={...DEFAULT_MOTION}) {
     this.body=body;this.cradle=new PreyCradle(body);this.traction=new GroundTraction(body);this.separation=new LimbSeparation(body);
+    this.feeding.viscous=body.cage.variant==='ovum';
     this.settings=settings;this.gait=new SpiderGait(settings,body.cage.limbCount??6);this.pursuit=new TentaclePursuit(settings,body.cage.limbCount??6);
     this.accelerations=new Float64Array(body.x.length);
     for(let i=0;i<body.mass.length;i++)if(Math.hypot(body.rest[i*3],body.rest[i*3+2])<.034)this.abdominalNodes.push(i);

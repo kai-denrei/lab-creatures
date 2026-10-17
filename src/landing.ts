@@ -2,9 +2,9 @@ import { SPECIMENS } from './catalog/specimens.ts';
 import './catalog/style.css';
 document.body.classList.add('landing');
 document.title='lab-creatures — Specimen library';
-const families=['All specimens','Arthropods','Membranes','Soft bodies','Crawlers','Playground'];
+const families=['All specimens','Collectives','Arthropods','Membranes','Soft bodies','Crawlers','Playground'];
 document.querySelector('#app')!.innerHTML=`
-<header class="catalog-header"><a href="./" class="wordmark">lab-creatures<span> / FIELD COLLECTION</span></a><span class="catalog-tag">${SPECIMENS.length} SPECIMENS · 5 FAMILIES</span></header>
+<header class="catalog-header"><a href="./" class="wordmark">lab-creatures<span> / FIELD COLLECTION</span></a><span class="catalog-tag">${SPECIMENS.length} SPECIMENS · ${families.length-1} FAMILIES</span></header>
 <main class="catalog-main">
 <section class="catalog-intro"><div><span class="lab-label">THE LIVING COLLECTION</span><h1>Choose your<br><em>unfamiliar.</em></h1></div><p>Meet a body. Follow an instinct.<br>Open any specimen to observe, tune and explore.</p></section>
 <section class="catalog-browser" aria-label="Specimen library">

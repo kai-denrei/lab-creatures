@@ -16,5 +16,5 @@ export async function loadMonsterCage(variant:keyof typeof models='nih-dairia'){
     fetch(models[variant][1]),
   ]);
   if(!binary.ok||!metadata.ok)throw new Error('Could not load Nih-Dairia geometry');
-  return parseCage(await binary.arrayBuffer(),await metadata.json() as ModelManifest);
+  return {...parseCage(await binary.arrayBuffer(),await metadata.json() as ModelManifest),variant};
 }

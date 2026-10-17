@@ -3,6 +3,7 @@ import { positionWorld, uniform, smoothstep } from 'three/tsl';
 import type { FeedingCycle } from './feeding.ts';
 import { createDorsalGrowth } from './dorsal.ts';
 import { tissueColors } from './skin.ts';
+import { createBiomassFlow } from './biomass.ts';
 import type { SoftBody } from '../physics/soft-body.js';
 
 export function createMonsterAppearance(body:SoftBody,feeding?:FeedingCycle){
@@ -13,6 +14,7 @@ export function createMonsterAppearance(body:SoftBody,feeding?:FeedingCycle){
   const mesh=new THREE.Mesh(geometry,material);mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;
   if(body.cage.dorsal){const dorsal=createDorsalGrowth(body);mesh.add(dorsal.root);mesh.userData.updateAnatomy=dorsal.update;}
   if(feeding){
+    if(feeding.viscous){const flow=createBiomassFlow(body,feeding);mesh.add(flow.mesh);mesh.userData.updateBiomass=flow.update;}
     const center=uniform(new THREE.Vector3()),coverage=uniform(0);
     const skin= smoothstep(.016,.040,positionWorld.xz.distance(center.xz));
     material.transmissionNode=skin.oneMinus().mul(coverage).oneMinus().mul(.65);
@@ -21,4 +23,4 @@ export function createMonsterAppearance(body:SoftBody,feeding?:FeedingCycle){
   return mesh;
 }
 
-export function updateMonsterAppearance(mesh:THREE.Mesh){mesh.userData.updateAnatomy?.();}
+export function updateMonsterAppearance(mesh:THREE.Mesh){mesh.userData.updateAnatomy?.();mesh.userData.updateBiomass?.();}

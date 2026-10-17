@@ -15,6 +15,20 @@ import { SoftBody } from '../physics/soft-body.js';
 import { createMonsterAppearance,updateMonsterAppearance } from '../monster/appearance.ts';
 import { createPlayerCreature } from '../game/player-creature.ts';
 export async function renderThumbnail(id:string){
+  if(id==='cutisling-v2'){
+    const {createV2Scene}=await import('../cutisling-v2/scene.ts');
+    document.body.innerHTML='<main id="v2-thumbnail" style="width:640px;height:420px"></main>';document.body.style.cssText='margin:0;overflow:hidden';
+    const lab=createV2Scene(document.querySelector<HTMLElement>('#v2-thumbnail')!);
+    for(let i=0;i<360;i++)lab.body.step(1/60);
+    lab.controls.target.set(lab.body.centerX,0,lab.body.centerZ);lab.camera.position.set(lab.body.centerX+3,6,lab.body.centerZ+7);lab.draw();return;
+  }
+  if(id==='inago'||id==='cutisling'){
+    const {createInagoScene}=await import('../inago/scene.ts');
+    document.body.innerHTML='<main id="inago-thumbnail" style="width:640px;height:420px"></main>';document.body.style.cssText='margin:0;overflow:hidden';
+    const lab=createInagoScene(document.querySelector<HTMLElement>('#inago-thumbnail')!,id);
+    for(let i=0;i<480;i++)lab.organism.step(1/60);
+    const x=lab.organism.x.reduce((sum,v)=>sum+v,0)/lab.organism.count,z=lab.organism.z.reduce((sum,v)=>sum+v,0)/lab.organism.count;lab.controls.target.set(x,0,z);lab.camera.position.set(x+4,8,z+9);lab.draw(false);return;
+  }
   if(id==='cutis-maku'||id==='cutis-maku-k'||id==='cutis-maku-pearl'||id==='cutis-gorogoro'){
     const [{createCutisScene},{DEFAULT_CONFIG}]=await Promise.all([import('../cutis/scene.ts'),import('../cutis/swarm/config.ts')]);
     document.body.innerHTML='<main id="cutis-thumbnail" style="width:640px;height:420px"></main>';document.body.style.cssText='margin:0;overflow:hidden';
