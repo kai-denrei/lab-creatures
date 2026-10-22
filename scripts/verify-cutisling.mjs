@@ -66,3 +66,36 @@ import {CUTISLING_DEFAULTS} from '../src/cutisling/settings.ts';
   assert(compactness(1)<compactness(0)*.98,'tension smooths the spread outline');
   pass('field skin: continuous skin, spread/contract, hollow, cover, approaches, tension');
 }
+import {Cutisling} from '../src/cutisling/controller.ts';
+// ---- C. feeding behavior ----------------------------------------------------
+{
+  const run=(settings={},seconds=60)=>{const c=new Cutisling();Object.assign(c.tuning,settings);let splitFor=0,worst=0,longestEncircle=0;
+    for(let i=1;i<=seconds*60;i++){c.step(1/60);
+      if(c.feeding==='ENCIRCLE')longestEncircle=Math.max(longestEncircle,c.feedingTime);
+      if(i%6===0&&c.tuning.hunting){const loops=c.contours(),outer=loops.filter(l=>polygonArea(l)>0),inside=outer.filter(l=>contains(l,c.preyX,c.preyZ));
+        if(inside.length&&outer.length>1){splitFor+=.1;worst=Math.max(worst,outer.length);}else splitFor=0;
+        assert(splitFor<=.25,`skin stayed split ${splitFor.toFixed(1)} s around prey (${worst} pieces) at t=${(i/60).toFixed(1)} feeding=${c.feeding}`);}
+    }
+    return {meals:c.meals,longestEncircle,c};};
+  const base=run();
+  assert(base.meals>=1,`defaults feed at least once in 60 s (got ${base.meals})`);
+  assert(base.longestEncircle<=22.05,'encircle never exceeds the hard cap');
+  const long=run({},180);
+  assert(long.meals>=3,`defaults feed three times in 180 s (got ${long.meals})`);
+  for(const settings of [{freedom:.5,turbulence:2},{freedom:0,turbulence:0,swirl:.2},{approach:'viscous',viscosity:1},{approach:'elastic',tension:1},{mouthDetail:1.4,edgeDetail:1},{mouthDetail:0,edgeDetail:0}]){
+    const r=run(settings);assert(r.meals>=1,`feeds within 60 s at ${JSON.stringify(settings)} (got ${r.meals})`);
+  }
+  const c=new Cutisling();
+  for(let i=0;i<60*60&&c.feeding!=='COVER';i++)c.step(1/60);
+  assert.equal(c.feeding,'COVER','reaches cover');
+  assert(c.enclosed(),'cover begins only once the skin encloses the prey');
+  const o=c.opening;assert(o.radius>=1.05*c.preyRadius-1e-9,'the hole never shrinks below the prey');
+  for(let k=0;k<5;k++){const theta=k/5*Math.PI*2;assert(Math.abs(c.hollowAt(theta)-.68)<.68*.2);}
+  const radii=Array.from({length:36},(_,k)=>c.hollowAt(k/36*Math.PI*2)),mean=radii.reduce((a,b)=>a+b)/36,cv=Math.sqrt(radii.reduce((a,r)=>a+(r-mean)**2,0)/36)/mean;
+  assert(cv>=.03,`the hollow radius is irregular around the prey (cv ${cv.toFixed(3)})`);
+  const free=new Cutisling();free.tuning.hunting=false;for(let i=0;i<10*60;i++)free.step(1/60);assert.equal(free.feeding,'HUNT');assert.equal(free.meals,0);
+  const a=new Cutisling(),b=new Cutisling();for(let i=0;i<20*60;i++){a.step(1/60);b.step(1/60);}
+  assert.deepEqual(Array.from(a.x),Array.from(b.x),'stepping is deterministic');
+  a.paused=true;const before=a.time;a.step(1/60);assert.equal(a.time,before,'pause freezes the organism');a.paused=false;a.reset();assert.equal(a.feeding,'HUNT');assert.equal(a.time,0);
+  pass('feeding: completes under defaults and extremes, one body around prey, hard cap, irregular hollow, determinism, pause, reset');
+}
