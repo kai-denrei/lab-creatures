@@ -1,5 +1,5 @@
 export type Point=[number,number];
-export interface Opening{x:number;z:number;radius:number;coverage:number;gapX?:number;gapZ?:number;gapWidth?:number;time?:number;detail?:number;pressure?:Float64Array}
+export interface Opening{x:number;z:number;radius:number;coverage:number;preyRadius:number;preyScale:number;gapX?:number;gapZ?:number;gapWidth?:number;time?:number;detail?:number;pressure?:Float64Array}
 /** Smooth, invertible tissue shear: unequal advancing lips, never a circular punch-out. */
 function openingWarp(time:number){return [1.12+.06*Math.sin(time*.31),.88+.05*Math.sin(time*.27),time*.4,-time*.33];}
 function warpPoint(opening:Opening,p:Point):Point{
