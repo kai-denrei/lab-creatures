@@ -1,5 +1,6 @@
 import './style.css';
 import './landing.css';
+if(import.meta.env.DEV){const badge=document.createElement('div');badge.className='dev-build';badge.textContent=`dev ${__BUILD_ID__}`;badge.title='Local development build: commit, dirty marker, server start time';document.body.append(badge);}
 async function openPage(){
   const specimen=new URLSearchParams(location.search).get('specimen');
   if(specimen==='cutisling-v2'){await import('./cutisling-v2/page.ts');}

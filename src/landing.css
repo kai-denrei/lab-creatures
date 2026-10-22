@@ -21,3 +21,5 @@ body.landing,body.landing #app{height:auto;overflow:visible}html:has(body.landin
 .player-picker{pointer-events:auto;display:block;margin-top:18px;font-size:11px}
 .player-picker select{display:block;margin-top:6px;min-height:44px;max-width:210px;width:100%;padding:8px 12px;border:1px solid #52663260;border-radius:8px;background:#f7f3e7ed;color:#394028;font:16px ui-sans-serif,sans-serif}
 @media(max-height:520px){.baby-playground .masthead{top:70px}.player-picker{margin-top:8px}.baby-playground .masthead>.eyebrow{display:none}.baby-playground h1{font-size:25px}}
+
+.dev-build{position:fixed;left:8px;bottom:6px;z-index:99;padding:3px 7px;border-radius:3px;background:#0008;color:#e8e3d1;font:10px/1.4 ui-monospace,monospace;letter-spacing:.04em;pointer-events:none}
