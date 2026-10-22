@@ -25,8 +25,8 @@ export class FieldSkin{
     const dt=this.body.time-this.lastTime,reset=!(dt>0&&dt<=.25)||config!==this.lastConfig;
     this.lastTime=this.body.time;this.lastConfig=config;
     // Blur the driver field before carving so tension never bleeds tissue back into the hollow.
-    this.splat();this.blur(Math.round(this.settings.tension*5));if(hollow)this.carve(hollow);this.relax(dt,reset);
-    this.loops=traceContours(this.value,NODES,1,CELL,HALF);
+    this.splat();this.blur(Math.round(this.settings.tension*5));this.ripple();if(hollow)this.carve(hollow);this.relax(dt,reset);
+    this.loops=traceContours(this.value,NODES,1,CELL,HALF,.1);
     return this.loops;
   }
   private splat(){
@@ -41,6 +41,15 @@ export class FieldSkin{
       for(let j=ja;j<=jb;j++){const dz=j*CELL-HALF-z;for(let i=ia;i<=ib;i++){const dx=i*CELL-HALF-x,q=(dx*dx+dz*dz)/(radius*radius);if(q<1){const w=1-q;target[j*NODES+i]+=amplitude*w*w;}}}
     }
     this.i0=Math.max(0,i0-1);this.i1=Math.min(NODES-1,i1+1);this.j0=Math.max(0,j0-1);this.j1=Math.min(NODES-1,j1+1);
+  }
+  /** Slow, multi-octave modulation so the iso-line wanders organically instead of running straight. */
+  private ripple(){
+    const {target,body}=this,t=body.time,amplitude=.5*(.4+.8*this.settings.edgeDetail);
+    for(let j=this.j0;j<=this.j1;j++){const z=j*CELL-HALF;for(let i=this.i0;i<=this.i1;i++){
+      const k=j*NODES+i;if(target[k]<.2)continue;const x=i*CELL-HALF;
+      const n=(Math.sin(2.1*x+1.7*z+.3*t)+.6*Math.sin(4.3*x-3.1*z-.5*t+1.3)+.35*Math.sin(7.9*x+6.3*z+.9*t+2.7))/1.95;
+      target[k]*=1+amplitude*n;
+    }}
   }
   private carve(h:Hollow){
     const reach=Math.max(h.coverRadius+.5,1.2),cells=Math.ceil(reach/CELL),ci=Math.round((h.x+HALF)/CELL),cj=Math.round((h.z+HALF)/CELL);

@@ -1,16 +1,20 @@
 import * as THREE from 'three';
 import type { Inago } from '../inago/controller.ts';
-import {contains,openingContour,polygonArea,roundContour,subtractOpening} from './outline.ts';
+import {contains,polygonArea} from './outline.ts';
 import type {Opening,Point} from './outline.ts';
-import {createTissueEnvelope} from './envelope.ts';
+import {FieldSkin} from './field.ts';
 import {createVeinTexture} from './veins.ts';
 import {CUTISLING_DEFAULTS} from './settings.ts';
 import type {CutislingSettings} from './settings.ts';
 
 /** A continuous tissue volume driven by a small invisible flock. */
-export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>number=()=>0,opening:()=>Opening|null=()=>null){
+export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>number=()=>0,opening:()=>Opening|null=()=>null,floor:(x:number,z:number)=>number=()=>.012){
   const tuning=(body as Inago & {tuning?:CutislingSettings}).tuning??CUTISLING_DEFAULTS;
-  const envelope=createTissueEnvelope(body,tuning),veinTexture=createVeinTexture();
+  // A controller owns its skin and carves the prey hollow; a plain flock gets an uncut skin.
+  const owned=body as Inago & {skin?:FieldSkin;contours?:()=>Point[][]};
+  const fieldSkin=owned.skin??new FieldSkin(body,tuning);
+  const loopsNow=()=>owned.contours?owned.contours():fieldSkin.contours();
+  const veinTexture=createVeinTexture();
   const positions=new Float32Array(32768*3),normals=new Float32Array(positions.length);
   for(let i=1;i<normals.length;i+=3)normals[i]=1;
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));
@@ -47,8 +51,7 @@ export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>num
   const rimPositions=new Float32Array(65536*3),rimNormals=new Float32Array(rimPositions.length),rimGeometry=new THREE.BufferGeometry();
   rimGeometry.setAttribute('position',new THREE.BufferAttribute(rimPositions,3).setUsage(THREE.DynamicDrawUsage));rimGeometry.setAttribute('normal',new THREE.BufferAttribute(rimNormals,3).setUsage(THREE.DynamicDrawUsage));
   // One material and coordinate field cross the cap/lip seam, including while sealing.
-  const rimMaterial=material;
-  const rim=new THREE.Mesh(rimGeometry,rimMaterial);rim.frustumCulled=false;rim.renderOrder=1;
+  const rim=new THREE.Mesh(rimGeometry,material);rim.frustumCulled=false;rim.renderOrder=1;
 
   const group=new THREE.Group();group.name='Cutisling / continuous veined tissue';group.add(underside,skin,rim);
   let area=0,lastTime=-1,boundaries:Point[][]=[];
@@ -58,6 +61,7 @@ export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>num
     if(body.time===lastTime&&!force)return;const elapsed=body.time-lastTime;lastTime=body.time;
     const height=.012+tuning.thickness+Math.sin(body.time*1.8)*.002,aperture=opening();
     const liftX=aperture?.x??body.centerX,liftZ=aperture?.z??body.centerZ,bulging=lift(liftX,liftZ)>.00001;
+    const preyReach=aperture?aperture.preyRadius*aperture.preyScale+.3:0;
     let written=0;
     const vertex=(p:number[])=>{
       positions[written]=p[0];positions[written+1]=p[1];positions[written+2]=p[2];
@@ -67,12 +71,14 @@ export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>num
       if(bulging){
         // Split shared edges in the same pass on both neighboring faces. Independent
         // recursive triangles leave T-junctions that tear when lifted into a dome.
-        for(let pass=0;pass<9;pass++){
+        for(let pass=0;pass<10;pass++){
           const mids=new Map<string,number>();let splits=0;
           const midpoint=(a:number,b:number)=>{
             const p=vertices[a],q=vertices[b];
             const near=liftX>=Math.min(p[0],q[0])-.65&&liftX<=Math.max(p[0],q[0])+.65&&liftZ>=Math.min(p[2],q[2])-.65&&liftZ<=Math.max(p[2],q[2])+.65;
-            if((p[0]-q[0])**2+(p[2]-q[2])**2<=(near?.14:.5)**2)return -1;
+            // Finer facets over the prey keep chord sag below the clearance margin.
+            const overPrey=near&&Math.hypot((p[0]+q[0])*.5-liftX,(p[2]+q[2])*.5-liftZ)<preyReach;
+            if((p[0]-q[0])**2+(p[2]-q[2])**2<=(overPrey?.07:near?.14:.5)**2)return -1;
             const key=a<b?`${a}:${b}`:`${b}:${a}`;let index=mids.get(key);
             if(index===undefined){index=vertices.length;vertices.push([(p[0]+q[0])*.5,height,(p[2]+q[2])*.5]);mids.set(key,index);}return index;
           };
@@ -98,12 +104,11 @@ export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>num
       });
       for(const face of faces){vertex(samples[face[0]]);vertex(samples[face[2]]);vertex(samples[face[1]]);}
     };
-    // The whole flock drives one smoothed contour; no motile geometry or vein graph.
-    const outer=envelope();area=polygonArea(outer);
-    const lipPadding=tuning.lipWidth*Math.min(1,(aperture?.radius??1)/.25);
-    boundaries=subtractOpening(outer,openingContour(aperture,lipPadding)).map(roundContour);
+    // The whole flock drives one field; its iso-contours are the tissue outline, holes included.
+    boundaries=loopsNow();area=boundaries.reduce((sum,loop)=>sum+polygonArea(loop),0);
+    const holeRadius=aperture?.radius??1,lipPadding=tuning.lipWidth*Math.min(1,holeRadius/.25);
     if(bulging)boundaries=boundaries.map(loop=>loop.flatMap((p,i)=>{
-      const q=loop[(i+1)%loop.length],steps=Math.max(1,Math.ceil(Math.hypot(q[0]-p[0],q[1]-p[1])/.14));
+      const q=loop[(i+1)%loop.length],near=aperture!==null&&Math.hypot(p[0]-aperture.x,p[1]-aperture.z)<preyReach,steps=Math.max(1,Math.ceil(Math.hypot(q[0]-p[0],q[1]-p[1])/(near?.07:.14)));
       return Array.from({length:steps},(_,j):Point=>[p[0]+(q[0]-p[0])*j/steps,p[1]+(q[1]-p[1])*j/steps]);
     }));
     const outside=boundaries.filter(loop=>polygonArea(loop)>0),holes=boundaries.filter(loop=>polygonArea(loop)<0);
@@ -112,7 +117,7 @@ export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>num
       const vertices=[...contour,...enclosed.flat()],faces=THREE.ShapeUtils.triangulateShape(contour.map(p=>new THREE.Vector2(p[0],p[1])),enclosed.map(loop=>loop.map(p=>new THREE.Vector2(p[0],p[1]))));
       tessellate(vertices.map(p=>[p[0],height,p[1]]),faces);
     }
-    for(let i=0;i<written;i+=3){bottomPositions[i]=positions[i];bottomPositions[i+1]=.012;bottomPositions[i+2]=positions[i+2];}
+    for(let i=0;i<written;i+=3){bottomPositions[i]=positions[i];bottomPositions[i+1]=Math.max(.012,floor(positions[i],positions[i+2]));bottomPositions[i+2]=positions[i+2];}
     bottomGeometry.setDrawRange(0,written/3);upload(bottomGeometry,'position',written);
     // The contour winding distinguishes outer padding from the inward feeding lip.
     const profiles:number[][][]=[],loops:{start:number;count:number}[]=[];
@@ -124,11 +129,15 @@ export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>num
         let nx=ez/el+fz/fl,nz=-(ex/el+fx/fl);const length=Math.hypot(nx,nz)||1;nx/=length;nz/=length;
         const miter=1/Math.max(.5,nx*fz/fl-nz*fx/fl);
         const roof=height+lift(b[0],b[1]),profile=[[b[0],roof,b[1],0,1,0]];
-        const nearMouth=aperture&&Math.hypot(b[0]-aperture.x,b[1]-aperture.z)<aperture.radius+lipPadding+.2;
-        // A fixed-width collar folds through itself as the final hole closes.
+        const nearMouth=aperture!==null&&Math.hypot(b[0]-aperture.x,b[1]-aperture.z)<aperture.radius+lipPadding+.2;
+        // The collar narrows with the closing hole and its floor rides over the prey, never through it.
         const width=nearMouth?lipPadding:tuning.lipWidth;
-        for(let j=0;j<=8;j++){const angle=j/8*Math.PI,offset=width*(.85+.15*Math.sin(angle))*miter;profile.push([b[0]+nx*offset,.012+(roof-.019)*(1+Math.cos(angle))*.5,b[1]+nz*offset,nx*Math.sin(angle),Math.cos(angle),nz*Math.sin(angle)]);}
-        profile.push([b[0],.012,b[1],0,-1,0]);profiles.push(profile);
+        for(let j=0;j<=8;j++){
+          const angle=j/8*Math.PI,offset=width*(.85+.15*Math.sin(angle))*miter,px=b[0]+nx*offset,pz=b[1]+nz*offset;
+          const base=Math.max(.012,floor(px,pz),lift(px,pz)-tuning.thickness*.5),top=Math.max(roof,base+.004);
+          profile.push([px,base+(top-.007-base)*(1+Math.cos(angle))*.5,pz,nx*Math.sin(angle),Math.cos(angle),nz*Math.sin(angle)]);
+        }
+        profile.push([b[0],Math.max(.012,floor(b[0],b[1])),b[1],0,-1,0]);profiles.push(profile);
       }
     }
     let rimWritten=0;
@@ -140,7 +149,7 @@ export function createCutislingMembrane(body:Inago,lift:(x:number,z:number)=>num
     tissueTime.value=body.time;veinStyle.value.set(tuning.veinScale,tuning.veinWarp,tuning.veinContrast);
     // Smooth the material frame independently of changing triangulation and aperture area.
     const blend=elapsed<0||elapsed>.25?1:1-Math.exp(-Math.max(0,elapsed)*3);
-    tissueScale.value+=(Math.max(.5,Math.sqrt(area)*.38)-tissueScale.value)*blend;
+    tissueScale.value+=(Math.max(.5,Math.sqrt(Math.max(0,area))*.38)-tissueScale.value)*blend;
     const cx=body.x.reduce((sum,v)=>sum+v,0)/body.count,cz=body.z.reduce((sum,v)=>sum+v,0)/body.count;
     tissueCenter.value.x+=(cx-tissueCenter.value.x)*blend;tissueCenter.value.y+=(cz-tissueCenter.value.y)*blend;
   }

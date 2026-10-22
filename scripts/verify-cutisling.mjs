@@ -99,3 +99,45 @@ import {Cutisling} from '../src/cutisling/controller.ts';
   a.paused=true;const before=a.time;a.step(1/60);assert.equal(a.time,before,'pause freezes the organism');a.paused=false;a.reset();assert.equal(a.feeding,'HUNT');assert.equal(a.time,0);
   pass('feeding: completes under defaults and extremes, one body around prey, hard cap, irregular hollow, determinism, pause, reset');
 }
+import {createCutislingMembrane} from '../src/cutisling/membrane.ts';
+// ---- D. membrane geometry ----------------------------------------------------
+{
+  const inspect=(membrane,label)=>{
+    const positions=membrane.skin.geometry.attributes.position.array,count=membrane.skin.geometry.drawRange.count*3;
+    const outline=membrane.boundaries.reduce((s,l)=>s+polygonArea(l),0);
+    let triangles=0;for(let i=0;i<count;i+=9)triangles+=Math.abs((positions[i+3]-positions[i])*(positions[i+8]-positions[i+2])-(positions[i+6]-positions[i])*(positions[i+5]-positions[i+2]))*.5;
+    assert(Math.abs(outline-triangles)<2e-3,`${label}: triangles fill the outline (${outline.toFixed(3)} vs ${triangles.toFixed(3)})`);
+    for(const mesh of [membrane.skin,membrane.underside,membrane.rim]){
+      const {geometry}=mesh,p=geometry.attributes.position.array,n=geometry.drawRange.count*3;
+      assert(n<=geometry.attributes.position.count*3,`${label}: draw range fits the buffer`);
+      for(let i=0;i<n;i++)assert(Number.isFinite(p[i]),`${label}: finite geometry`);
+      for(let i=1;i<n;i+=3)assert(p[i]>=.011&&p[i]<.8,`${label}: tissue stays between the ground and the dome (${p[i].toFixed(3)})`);
+    }
+  };
+  const plain=new Inago(),plainMembrane=createCutislingMembrane(plain);
+  assert.equal(plainMembrane.boundaries.length,1,'an Inago body without a controller still gets one skin');
+  for(let i=1;i<=6*60;i++){plain.step(1/60);if(i%20===0){plainMembrane.update();inspect(plainMembrane,'plain');}}
+  const c=new Cutisling(),membrane=createCutislingMembrane(c,(x,z)=>c.surfaceLift(x,z),()=>c.opening,(x,z)=>c.floorAt(x,z));
+  let coverSamples=0,holeChecked=false;const straight=[];
+  // Longest stretch of a loop lying within 1.5 cm of one chord: the old carved lips measured metres.
+  const longestStraight=loop=>{let best=0;const n=loop.length;
+    for(let s=0;s<n;s++){let e=s+2;for(;e<s+n;e++){const a=loop[s%n],b=loop[e%n],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz)||1e-9;let ok=true;
+        for(let m=s+1;m<e;m++){const p=loop[m%n];if(Math.abs((p[0]-a[0])*dz-(p[1]-a[1])*dx)/len>.015){ok=false;break;}}
+        if(!ok)break;}
+      const a=loop[s%n],b=loop[(e-1)%n];best=Math.max(best,Math.hypot(b[0]-a[0],b[1]-a[1]));}
+    return best;};
+  for(let i=1;i<=90*60;i++){
+    c.step(1/60);if(i%10)continue;membrane.update();inspect(membrane,`t=${(i/60).toFixed(1)} ${c.feeding}`);
+    if(i%60===0)for(const loop of c.contours())if(Math.abs(polygonArea(loop))>=1)straight.push(longestStraight(loop));
+    if(c.feeding==='ENCIRCLE'&&c.feedingTime>3){const hole=membrane.boundaries.find(l=>polygonArea(l)<0);if(hole){const radii=hole.map(p=>Math.hypot(p[0]-c.preyX,p[1]-c.preyZ)),mean=radii.reduce((a,b)=>a+b)/radii.length,cv=Math.sqrt(radii.reduce((a,r)=>a+(r-mean)**2,0)/radii.length)/mean;assert(cv>=.05,`hole is not a circle (cv ${cv.toFixed(3)})`);holeChecked=true;}}
+    if(c.feeding==='COVER'||c.feeding==='ABSORB'){coverSamples++;const rp=c.preyRadius*c.preyScale,cy=.012+rp;
+      for(const mesh of [membrane.skin,membrane.rim]){const p=mesh.geometry.attributes.position.array,n=mesh.geometry.drawRange.count*3;
+        for(let k=0;k<n;k+=3){const dx=p[k]-c.preyX,dz=p[k+2]-c.preyZ,dy=p[k+1]-cy,d=Math.sqrt(dx*dx+dy*dy+dz*dz);assert(d>=rp+.01-1e-6,`${c.feeding} t=${c.feedingTime.toFixed(2)} ${mesh===membrane.rim?'rim':'cap'}: tissue vertex ${d.toFixed(3)} m from the prey centre is inside the ${rp.toFixed(3)} m prey`);}}}
+  }
+  assert(holeChecked,'the hole was observed during encircle');
+  assert(coverSamples>0,'cover and absorb were observed');
+  straight.sort((a,b)=>a-b);const medianStraight=straight[Math.floor(straight.length/2)],maxStraight=straight[straight.length-1];
+  assert(medianStraight<1.6&&maxStraight<2.5,`no metre-scale straight edges (median ${medianStraight.toFixed(2)} m, max ${maxStraight.toFixed(2)} m)`);
+  assert(c.meals>=1,'the membrane run fed');
+  pass('membrane: continuous skin on any body, fills outline, bounded, no circular hole, no metre-scale straight edges, clearance over prey');
+}

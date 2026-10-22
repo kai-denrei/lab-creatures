@@ -45,22 +45,26 @@ export class Cutisling extends Inago{
   private hollow():Hollow|null{
     if(!this.tuning.hunting||(!this.locked&&this.preyScale===0))return null;
     const coverage=this.coverage,scale=this.holeRadius()/this.hollowRadius;
-    return {x:this.preyX,z:this.preyZ,radiusAt:theta=>this.hollowAt(theta)*scale,strength:this.locked?1-smooth((coverage-.6)/.4):0,cover:this.locked?smooth(coverage/.8):0,coverRadius:this.hollowRadius+.2};
+    return {x:this.preyX,z:this.preyZ,radiusAt:theta=>this.hollowAt(theta)*scale,strength:this.locked?1-smooth((coverage-.6)/.4):0,cover:this.locked?smooth((coverage-.45)/.45):0,coverRadius:this.hollowRadius+.2};
   }
   contours():Point[][]{return this.skin.contours(this.hollow());}
   /** Closure: exactly one outer loop contains the prey centre. A horseshoe does not. */
   enclosed(){const outer=this.contours().filter(l=>polygonArea(l)>0&&contains(l,this.preyX,this.preyZ));return outer.length===1;}
   surfaceLift(x:number,z:number){
     if(this.coverage===0)return 0;
-    const r2=(x-this.preyX)**2+(z-this.preyZ)**2,c=smooth(this.coverage/.65)*(.25+.75*this.preyScale),rp=this.preyRadius*this.preyScale;
-    const gaussian=.5*Math.exp(-r2/.16),clearance=rp+Math.sqrt(Math.max(0,rp*rp-r2))-this.tuning.thickness+.025;
-    return c*Math.max(gaussian,clearance);
+    const r2=(x-this.preyX)**2+(z-this.preyZ)**2,rp=this.preyRadius*this.preyScale,inflated=rp+.03;
+    // A soft mound for the look, and a hard dome that is the prey sphere inflated by 3 cm.
+    const mound=.5*Math.exp(-r2/.16)*smooth(this.coverage/.65)*(.25+.75*this.preyScale);
+    const clearance=r2<inflated*inflated?rp+Math.sqrt(inflated*inflated-r2)-this.tuning.thickness:0;
+    const gate=smooth((this.coverage-.4)/.25);
+    return Math.max(mound,gate*clearance,0);
   }
   /** Lowest permitted tissue height above the prey sphere at a point. */
   floorAt(x:number,z:number){
-    const rp=this.preyRadius*this.preyScale,r2=(x-this.preyX)**2+(z-this.preyZ)**2;
-    if(this.preyScale===0||r2>=rp*rp)return .012;
-    return .012+rp+Math.sqrt(rp*rp-r2)+.015;
+    // Clearance against a sphere inflated by 3 cm, so collar walls beside the equator clear it too.
+    const rp=this.preyRadius*this.preyScale,inflated=rp+.03,r2=(x-this.preyX)**2+(z-this.preyZ)**2;
+    if(this.preyScale===0||r2>=inflated*inflated)return .012;
+    return .012+rp+Math.sqrt(inflated*inflated-r2);
   }
   private updateOpening(dt:number){
     // Sample vacant sectors at 10 Hz: pressure feeds the HUD, the gap angle steers the squeeze.

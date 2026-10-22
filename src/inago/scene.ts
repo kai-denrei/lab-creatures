@@ -24,7 +24,7 @@ export function createInagoScene(host:HTMLElement,variant:'inago'|'cutisling'='i
   }
   const motiles=feeding?null:createMotiles(scene,organism.count);
   const lure=new THREE.Mesh(new THREE.RingGeometry(.09,.12,32),new THREE.MeshBasicMaterial({color:0xee9463,side:THREE.DoubleSide}));lure.rotation.x=-Math.PI/2;lure.position.y=.012;lure.visible=false;scene.add(lure);
-  const membrane=feeding?createCutislingMembrane(organism,(x,z)=>feeding.surfaceLift(x,z),()=>feeding.opening):null;if(membrane)scene.add(membrane.group);
+  const membrane=feeding?createCutislingMembrane(organism,(x,z)=>feeding.surfaceLift(x,z),()=>feeding.opening,(x,z)=>feeding.floorAt(x,z)):null;if(membrane)scene.add(membrane.group);
   const prey=feeding?new THREE.Mesh(new THREE.SphereGeometry(feeding.preyRadius,32,20),new THREE.MeshStandardMaterial({color:0xe7b76d,emissive:0xa65a19,emissiveIntensity:.3,roughness:.48})):null;if(prey)scene.add(prey);
   renderer.domElement.setAttribute('aria-label',`${variant==='cutisling'?'Cutisling, a flock connected by a continuous veined membrane':'Inago, a collective ground organism'}. Click the floor to attract it.`);
   const pose=new THREE.Object3D(),color=new THREE.Color();
