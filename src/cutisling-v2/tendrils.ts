@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import type {CutislingV2} from './controller.ts';
+import {crawlWave,coreCrawlLift} from './crawling.ts';
 import {coreLobe,recoveryGather} from './muscle-motion.ts';
-import {CORE_FLATNESS,CORE_FOOTPRINT,rootHeight} from './feeding-shape.ts';
+import {branchRoom} from './tendril-clearance.ts';
+import {CORE_FLATNESS,CORE_FOOTPRINT,rootHeight,loopThickness} from './feeding-shape.ts';
 import {sampleTendril} from './tendril-path.ts';
 import {createV2TissueMaterial} from './tissue-material.ts';
 
@@ -63,11 +65,13 @@ export function createV2Tendrils(body:CutislingV2){
       const heading=Math.atan2(ahead[2]-root[2],ahead[0]-root[0]);
       if(feeding)side=(-Math.sin(heading)*(root[0]-body.preyX)+Math.cos(heading)*(root[2]-body.preyZ))>=0?1:-1;
       const length=arm>=7?0:body.holdingPrey?body.contactLengths[arm]:body.mix(body.probes[arm].previousLength,body.probes[arm].length);
-      const growth=body.tuning.branching*(feeding?
+      let growth=body.tuning.branching*(feeding?
         smooth((wrap-attach*.18)/.28)*(1-smooth((sheet-.18)/.82))*Math.min(1,root[3]/(.10*spread*body.tuning.tendrilWidth)):
-        smooth((length-1.3)/2)*(body.holdingPrey?(1-sheet)*(1-.75*travel)*(1-.6*smooth(wrap)):blend));
-      const branchLength=(branch===1?.78:.52)*spread*growth;
+        smooth((length-1.3)/2)*(body.holdingPrey?(1-sheet)*(1-(1-body.tuning.supportReach)*travel)*(1-.15*smooth(wrap)):blend));
+      if(!feeding)growth*=Math.min(1,root[3]/loopThickness(attach,body.tuning.tendrilWidth,spread));
+      let branchLength=(branch===1?.78:.52)*spread*growth;
       const branchAngle=heading+side*(.80+.13*Math.sin((body.holdingPrey&&!feeding?body.contactTime:body.mix(body.previousTime,body.time))*.55+arm*2+branch));
+      if(kind!==0){const room=branchRoom(body,arm,root[0],root[1],root[2],branchAngle,branchLength,.07*spread*body.tuning.tendrilWidth*growth);branchLength*=room;growth*=Math.sqrt(room);}
       const bx=Math.cos(branchAngle),bz=Math.sin(branchAngle),fork=kind>=3;
       if(fork){
         const u=.58,bend=side*.16*branchLength*Math.sin(u*Math.PI)*Math.sin(u*3+arm+branch);
@@ -100,14 +104,25 @@ export function createV2Tendrils(body:CutislingV2){
         const k=end*steps*4,p=(tube.capStart+end)*3;
         positions[p]=points[k];positions[p+1]=points[k+1];positions[p+2]=points[k+2];
       }
+      // Transport a perpendicular frame along the full 3D curve. Horizontal-only
+      // rings collapsed into clipped wedges whenever an avoidance arch rose steeply.
+      let sx=0,sy=0,sz=1;
       for(let j=0;j<=steps;j++){
         const k=j*4,a=Math.max(0,j-1)*4,b=Math.min(steps,j+1)*4;
-        const dx=points[b]-points[a],dz=points[b+2]-points[a+2],distance=Math.hypot(dx,dz)||1;
+        const dx=points[b]-points[a],dy=points[b+1]-points[a+1],dz=points[b+2]-points[a+2],distance=Math.hypot(dx,dy,dz)||1;
+        const tx=dx/distance,ty=dy/distance,tz=dz/distance;
+        if(j===0){const flat=Math.hypot(dx,dz)||1;sx=-dz/flat;sy=0;sz=dx/flat;}
+        const along=sx*tx+sy*ty+sz*tz;sx-=tx*along;sy-=ty*along;sz-=tz*along;
+        let length=Math.hypot(sx,sy,sz);
+        if(length<1e-6){sx=1-tx*tx;sy=-tx*ty;sz=-tx*tz;length=Math.hypot(sx,sy,sz)||1;}
+        sx/=length;sy/=length;sz/=length;
+        const ux=ty*sz-tz*sy,uy=tz*sx-tx*sz,uz=tx*sy-ty*sx;
         for(let n=0;n<=sides;n++){
           const angle=n/sides*Math.PI*2,r=points[k+3],p=(start+j*(sides+1)+n)*3;
-          positions[p]=points[k]-dz/distance*Math.cos(angle)*r;
-          positions[p+1]=points[k+1]+Math.sin(angle)*r*.9*(kind===0?rootHeight(j/steps):1)*(1-body.mix(body.previousSheet,body.sheet)*.75);
-          positions[p+2]=points[k+2]+dx/distance*Math.cos(angle)*r;
+          const side=Math.cos(angle)*r,up=-Math.sin(angle)*r*.9*(kind===0?rootHeight(j/steps):1)*(1-sheet*.75);
+          positions[p]=points[k]+sx*side+ux*up;
+          positions[p+1]=points[k+1]+sy*side+uy*up;
+          positions[p+2]=points[k+2]+sz*side+uz*up;
         }
       }
     }
@@ -122,16 +137,19 @@ export function createV2Tendrils(body:CutislingV2){
     const size=Math.cbrt(reserve/(4/3*Math.PI*.68*.38*.64));
     const height=size*CORE_FLATNESS/(widening*widening*Math.sqrt(stretch));
     core.visible=height>.001;
-    core.position.set(body.mix(body.previousCenterX,body.centerX),.018+.34*height,body.mix(body.previousCenterZ,body.centerZ));
+    const clock=body.mix(body.previousTime,body.time),amount=body.tuning.amorphous;
+    const rise=coreCrawlLift(body,clock,travel)*CORE_FLATNESS*(1-sheet)*Math.min(1,size/(baseSize||1));
+    core.position.set(body.mix(body.previousCenterX,body.centerX),.018+.34*height+rise,body.mix(body.previousCenterZ,body.centerZ));
     core.scale.set(.68*size*widening*stretch*CORE_FOOTPRINT,.38*height,.64*size*widening*CORE_FOOTPRINT/Math.sqrt(stretch));
     // Persistent local coordinates avoid rotating the lobes suddenly at a new anchor.
     core.rotation.y=0;
-    const clock=body.mix(body.previousTime,body.time),amount=body.tuning.amorphous;
     const effort=body.tuning.muscleStrength*Math.sin(Math.PI*travel)*Math.sin(travel*Math.PI*5);
     for(let i=0;i<corePosition.count;i++){
       const k=i*3,x=coreRest[k],y=coreRest[k+1],z=coreRest[k+2];
       const radius=coreLobe(x,y,z,clock,amount);
-      corePosition.setXYZ(i,x*radius*(1+.07*effort),y*radius,z*radius/(1+.07*effort));
+      const sway=.045*body.tuning.crawlSway*crawlWave(clock,x*2-z*1.6,body.tuning.crawlRate);
+      const rock=.065*body.tuning.crawlLift*crawlWave(clock,z*2+x*1.3+1,body.tuning.crawlRate);
+      corePosition.setXYZ(i,x*radius*(1+.07*effort)+sway*(1-y*y),y*radius+rock*x,z*radius/(1+.07*effort));
     }
     // Keep the same reserve volume while the silhouette changes shape.
     const correction=Math.cbrt(coreVolume/signedVolume());

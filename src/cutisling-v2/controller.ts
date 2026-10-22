@@ -1,3 +1,4 @@
+import {crawlSway} from './crawling.ts';
 import {muscleProgress,recoveryGather} from './muscle-motion.ts';
 import {CORE_FOOTPRINT} from './feeding-shape.ts';
 import {V2_DEFAULTS} from './settings.ts';
@@ -116,14 +117,24 @@ export class CutislingV2{
     if(this.anchorForPrey&&this.phase!=='SEEK'&&this.phase!=='RECOVER'){this.attackAge+=dt;this.predation=1-Math.exp(-this.attackAge*(10+this.tuning.frenzy*5));}else this.predation*=Math.exp(-dt*4);
     const aggro=s.aggro,openingTime=.95/this.huntRate;
     this.updateProbes(dt);
+    if(this.phase==='SEEK'&&s.limbClearance>0){
+      // Steer crowded roots apart before they can exchange sides during a turn.
+      for(let i=0;i<this.tentacleCount;i++)for(let j=i+1;j<this.tentacleCount;j++){
+        const a=this.probes[i],b=this.probes[j],delta=Math.atan2(Math.sin(b.angle-a.angle),Math.cos(b.angle-a.angle));
+        const gap=Math.min(.55,.22+.12*s.spread*s.tendrilWidth/Math.max(.2,Math.min(a.length,b.length)))*s.limbClearance;
+        if(Math.abs(delta)<gap){const push=(gap-Math.abs(delta))*(delta<0?-1:1)*(1-Math.exp(-dt*8))*.5;a.angle-=push;b.angle+=push;}
+      }
+    }
     const feeding=this.phase!=='SEEK',distance=Math.hypot(this.centerX-this.preyX,this.centerZ-this.preyZ);
     if(this.phase==='TRANSFER'){
       // Cutis-Gorogoro's slow draw into a fixed foothold. The target never
       // follows the prey or the searching noise after it has been committed.
       const progress=clamp(this.phaseTime/this.anchorDuration,0,1);
       this.anchorTravel=muscleProgress(progress,s.muscleStrength);
-      this.centerX=this.anchorFromX+(this.drawX-this.anchorFromX)*this.anchorTravel;
-      this.centerZ=this.anchorFromZ+(this.drawZ-this.anchorFromZ)*this.anchorTravel;
+      const dx=this.drawX-this.anchorFromX,dz=this.drawZ-this.anchorFromZ,distance=Math.hypot(dx,dz);
+      const sway=Math.min(.3*s.spread,distance*.12)*s.crawlSway*crawlSway(progress,this.chosenProbe*1.73+s.seed%97*.1,s.crawlRate);
+      this.centerX=this.anchorFromX+dx*this.anchorTravel-dz/(distance||1)*sway;
+      this.centerZ=this.anchorFromZ+dz*this.anchorTravel+dx/(distance||1)*sway;
     }
     const extent=1.55*s.spread;
     const cell=Math.max(s.neighborRange,(s.reach*s.spread+4)/30),offset=cell*32;
@@ -308,7 +319,9 @@ export class CutislingV2{
         const attention=i===this.trackingProbe?.97:.16;
         angle=turn(angle,bearing+pose.sweep*.08,orientation*attention);
         p.angle=turn(p.angle,angle,1-Math.exp(-dt*(5+this.predation*this.tuning.frenzy*3)));
-        const length=base+(s.reach*s.spread*reach-base)*extension;
+        const support=this.strides>0?smooth(1-this.phaseTime/2)*Math.max(base,this.spotLengths[i]*s.supportReach):base;
+        const floor=s.supportReach>.3&&this.strides>0?Math.max(base,1.6*s.spread):base;
+        const length=Math.max(support,floor+(s.reach*s.spread*reach-floor)*extension);
         p.length+=(length-p.length)*(1-Math.exp(-dt*8));
       }
     }else{
@@ -319,10 +332,10 @@ export class CutislingV2{
         if(this.phase==='SPOT'){
           const u=smooth(this.phaseTime/(.32/this.huntRate));
           angle=i===this.chosenProbe?turn(this.spotAngles[i],this.mouthAngle,u):this.spotAngles[i];
-          length=i===this.chosenProbe?Math.max(base,Math.hypot(this.anchorX-this.centerX,this.anchorZ-this.centerZ)):this.spotLengths[i]*(1-.35*u);
+          length=i===this.chosenProbe?Math.max(base,Math.hypot(this.anchorX-this.centerX,this.anchorZ-this.centerZ)):this.spotLengths[i]*(1-.35*u*(1-s.supportReach)/.75);
         }else if(this.phase==='ANCHOR'||this.phase==='TRANSFER'){
           angle=i===this.chosenProbe?Math.atan2(this.anchorZ-this.centerZ,this.anchorX-this.centerX):this.spotAngles[i];
-          length=i===this.chosenProbe?Math.max(base,Math.hypot(this.anchorX-this.centerX,this.anchorZ-this.centerZ)):base;
+          length=i===this.chosenProbe?Math.max(base,Math.hypot(this.anchorX-this.centerX,this.anchorZ-this.centerZ)):Math.max(base,this.spotLengths[i]*s.supportReach);
         }else if(this.phase==='EXTEND2'){
           const bias=s.organic*(i===(this.chosenProbe+1)%this.tentacleCount?-.08:.14);
           const u=clamp((this.phaseTime*this.huntRate/2.3-bias)/(1-bias),0,1);
@@ -439,7 +452,7 @@ export class CutislingV2{
     }else if(this.phase==='TRANSFER'){
       if(this.phaseTime>=this.anchorDuration){
         this.phase=this.anchorForPrey?'EXTEND2':'SEEK';this.phaseTime=0;
-        if(!this.anchorForPrey){this.strides++;this.chosenProbe=-1;this.trackingProbe=-1;for(let i=0;i<this.tentacleCount;i++){this.probes[i].clock=-i*.22;this.probes[i].length=.82*this.tuning.spread;}}
+        if(!this.anchorForPrey){this.strides++;this.chosenProbe=-1;this.trackingProbe=-1;for(let i=0;i<this.tentacleCount;i++){this.probes[i].clock=-i*.22;if(this.tuning.supportReach<=.3)this.probes[i].length=.82*this.tuning.spread;}}
       }
 
     }else if(this.phase==='EXTEND2'){
@@ -454,8 +467,12 @@ export class CutislingV2{
       this.sheet=smooth(this.phaseTime/this.tuning.flattenTime);
       if(this.sheet>=1){this.phase='ENGULF';this.phaseTime=0;this.captureGap=0;}
     }else if(this.phase==='ENGULF'){
-      const duration=2.8/urgency,progress=smooth(this.phaseTime/duration);
-      this.centerX=this.drawX+(this.preyX-this.drawX)*progress;this.centerZ=this.drawZ+(this.preyZ-this.drawZ)*progress;
+      const crawling=Math.min(1,Math.max(this.tuning.crawlSway,this.tuning.crawlLift));
+      const duration=Math.max(2.8/urgency,.8*crawling/this.tuning.crawlRate),p=clamp(this.phaseTime/duration,0,1);
+      const progress=smooth(p)*(1-crawling)+muscleProgress(p,this.tuning.muscleStrength)*crawling;
+      const dx=this.preyX-this.drawX,dz=this.preyZ-this.drawZ,distance=Math.hypot(dx,dz);
+      const sway=Math.min(.15*this.tuning.spread,distance*.08)*this.tuning.crawlSway*crawlSway(p,this.chosenProbe*1.73,this.tuning.crawlRate);
+      this.centerX=this.drawX+dx*progress-dz/(distance||1)*sway;this.centerZ=this.drawZ+dz*progress+dx/(distance||1)*sway;
       this.hole=.65*(1-smooth(progress/.92));this.gap=this.captureGap*(1-smooth(this.phaseTime/(.45/urgency)));this.lift=.52*smooth(progress/.65);
       if(this.phaseTime>=duration){this.phase='ABSORB';this.phaseTime=0;this.hole=this.gap=0;}
     }else if(this.phase==='ABSORB'){

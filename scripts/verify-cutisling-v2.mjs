@@ -5,7 +5,7 @@ import {V2_DEFAULTS,serializeV2Settings} from '../src/cutisling-v2/settings.ts';
 import {seekingPose,seekNoise} from '../src/cutisling-v2/seeking.ts';
 import {createV2Membrane} from '../src/cutisling-v2/membrane.ts';
 import {V2_PALETTES} from '../src/cutisling-v2/palettes.ts';
-import {sampleTendril} from '../src/cutisling-v2/tendril-path.ts';
+import {sampleTendril,sampleRawTendril} from '../src/cutisling-v2/tendril-path.ts';
 import {createV2TissueMaterial} from '../src/cutisling-v2/tissue-material.ts';
 import {LOOP_SWEEP} from '../src/cutisling-v2/feeding-shape.ts';
 import {V2Lure,WAVE_SPEED} from '../src/cutisling-v2/lure.ts';
@@ -19,7 +19,7 @@ function createMotionFixture(){
     seekSweep:.65,seekRate:1,strikeSpeed:3.4,anchorHold:.55,anchorPull:1.8,senseDistance:.16,
     anchorBulk:1,whipStrength:1.4,seed:17,frenzy:2.4,whipCurl:1,whipLift:1,whipAsymmetry:1,
     flattenTime:1.3,amorphous:1,muscleStrength:.85,limbLag:.8,lureSpeed:.32,lureBounce:.55,
-    vibrationSense:1.6,veinPulse:1.4,veinSpeed:1.1,followCamera:false});
+    vibrationSense:1.6,veinPulse:1.4,veinSpeed:1.1,followCamera:false,crawlSway:0,crawlLift:0,supportReach:.25,limbClearance:0});
   b.reset();return b;
 }
 
@@ -396,3 +396,114 @@ assert.deepEqual(JSON.parse(serializeV2Settings(accepted.tuning)).settings,V2_DE
 accepted.reset();assert.equal(accepted.time,0);assert.equal(accepted.tuning.seed,571519);
 acceptedTendrils.dispose();acceptedSkin.dispose();
 console.log('PASS accepted seed 571519 defaults, finite tissue, full phase sequence, repeated meals and exact settings round-trip');
+
+// Crawling must bend the actual pull, preserve the grip and keep its vertical
+// motion low. Exercise both the selected preset and maximum crawling controls.
+for(const extreme of [false,true]){
+  const b=new CutislingV2();b.tuning.interpolation=false;
+  if(extreme)Object.assign(b.tuning,{seed:10,crawlSway:2,crawlLift:1.5,crawlRate:2});
+  b.reset();const t=createV2Tendrils(b),m=createV2Membrane(b),tip=new Float64Array(4);
+  let left=0,right=0,lowest=Infinity,highest=0,draws=0,covered=false;
+  const phases=new Set();
+  for(let i=0;i<60*90&&b.meals<2;i++){
+    const phase=b.phase,x=b.centerX,z=b.centerZ,drawX=b.drawX,drawZ=b.drawZ;b.step(1/60);phases.add(b.phase);
+    if(['SEEK','SPOT','ANCHOR'].includes(phase))assert(Math.hypot(b.centerX-x,b.centerZ-z)<1e-9,'crawling does not create unanchored drift');
+    if(b.holdingPrey&&['SPOT','ANCHOR','TRANSFER','EXTEND2','SURROUND'].includes(b.phase)){
+      sampleTendril(b,b.chosenProbe,1,tip,false);
+      assert(Math.hypot(tip[0]-b.anchorX,tip[2]-b.anchorZ)<1e-9,'weaving pull keeps the original anchor planted');
+    }
+    if(b.phase==='TRANSFER'){
+      const dx=b.drawX-b.anchorFromX,dz=b.drawZ-b.anchorFromZ,d=Math.hypot(dx,dz)||1;
+      const lateral=((b.centerZ-b.anchorFromZ)*dx-(b.centerX-b.anchorFromX)*dz)/d;
+      left=Math.min(left,lateral);right=Math.max(right,lateral);draws++;
+    }
+    if(phase==='TRANSFER'&&b.phase!=='TRANSFER')assert(Math.hypot(b.centerX-drawX,b.centerZ-drawZ)<1e-9,'every weave settles exactly into its committed target');
+    if(b.phase==='RECOVER'&&b.recoveryProgress()<.64){sampleTendril(b,0,.5,tip,false);assert.equal(tip[3],0,'crawling does not reveal limbs before the mass reforms');}
+    if(i%3===0){
+      t.update();m.update();
+      if(t.core.visible){
+        const rise=t.core.position.y-.018-t.core.scale.y*.34/.38;
+        lowest=Math.min(lowest,rise);highest=Math.max(highest,rise);
+        assert(rise>=-1e-8&&rise<.08,'crawling lift remains small and above the floor');
+        assert(t.core.scale.y/Math.min(t.core.scale.x,t.core.scale.z)<.4,'crawling keeps the mass flat');
+      }
+      for(const geometry of [t.geometry,t.core.geometry,m.geometry])for(const attr of ['position','normal'])for(const v of geometry.attributes[attr].array)assert(Number.isFinite(v));
+      if(b.phase==='ABSORB'&&!covered){m.update();assert(heightAt(m,b.preyX,b.preyZ)>.012+b.preyRadius*2,'travelling folds preserve the sealed prey covering');covered=true;}
+    }
+  }
+  assert.equal(b.meals,2);assert(draws>60&&left<-.01&&right>.01,'body genuinely sways to both sides during anchored pulls');
+  assert(highest-lowest>.005,'weight rises and settles during locomotion');
+  assert(covered&&phases.has('FLATTEN')&&phases.has('RECOVER'));
+  b.paused=true;t.update();m.update();const core=t.core.geometry.attributes.position.array.slice(),cords=t.geometry.attributes.position.array.slice(),sheet=m.geometry.attributes.position.array.slice();
+  b.step(.1);t.update();m.update();assert.deepEqual(t.core.geometry.attributes.position.array,core);assert.deepEqual(t.geometry.attributes.position.array,cords);assert.deepEqual(m.geometry.attributes.position.array,sheet);
+  t.dispose();m.dispose();
+}
+const crawl60=new CutislingV2(),crawl120=new CutislingV2();
+for(let i=0;i<600;i++)crawl60.step(1/60);for(let i=0;i<1200;i++)crawl120.step(1/120);
+assert.equal(crawl60.centerX,crawl120.centerX);assert.equal(crawl60.centerZ,crawl120.centerZ);assert.deepEqual(crawl60.probes,crawl120.probes);
+console.log('PASS weaving anchored paths, planted tips, grounded flat-body lift, repeated feeds at maximum crawl controls, sealed prey, pause and display-rate determinism');
+
+
+function exposedContacts(points,b){
+  let contacts=0;const arms=[...Array(b.tentacleCount).keys(),7,8],core=.9*b.tuning.spread*b.tuning.tendrilWidth;
+  for(let a=0;a<arms.length;a++)for(let o=a+1;o<arms.length;o++){
+    if(arms[a]>=7&&arms[o]>=7)continue; // The feeding lips intentionally join.
+    for(let j=2;j<32;j++){
+      const k=(arms[a]*33+j)*4,r=points[k+3];if(r<.004||Math.hypot(points[k]-b.centerX,points[k+2]-b.centerZ)<core)continue;
+      let touching=false;
+      for(let n=1;n<33&&!touching;n++){
+        const q=(arms[o]*33+n)*4,dx=points[q]-points[q-4],dy=points[q+1]-points[q-3],dz=points[q+2]-points[q-2],d2=dx*dx+dy*dy+dz*dz;
+        if(d2<1e-10)continue;
+        const along=Math.max(0,Math.min(1,((points[k]-points[q-4])*dx+(points[k+1]-points[q-3])*dy+(points[k+2]-points[q-2])*dz)/d2));
+        const radius=(r+points[q-1]+(points[q+3]-points[q-1])*along)*.9;
+        const distance=Math.hypot(points[k]-points[q-4]-dx*along,points[k+1]-points[q-3]-dy*along,points[k+2]-points[q-2]-dz*along);
+        touching=radius>.01&&distance<radius*.8;
+      }
+      if(touching)contacts++;
+    }
+  }
+  return contacts;
+}
+let beforeClearance=0,afterClearance=0,supportFrames=0;
+for(const seed of [1,571519,10]){
+  const b=new CutislingV2();b.tuning.seed=seed;b.tuning.interpolation=false;b.reset();
+  const raw=new Float64Array(9*33*4),resolved=raw.slice(),point=new Float64Array(4);let gathered=false;
+  for(let i=0;i<3600&&!b.meals;i++){
+    b.step(1/60);
+    if(b.holdingPrey&&b.anchorTravel===0){
+      for(let arm=0;arm<b.tentacleCount;arm++)for(let j=0;j<33;j++){
+        sampleTendril(b,arm,j/32,point,false);
+        for(let axis=0;axis<3;axis++)assert(Math.abs(point[axis]-b.attackPaths[(arm*33+j)*4+axis])<1e-9,'resolved contact pose does not pop when the anchor is acquired');
+      }
+    }
+    if(b.holdingPrey&&b.sheet===0&&b.anchorTravel>.5){
+      for(let arm=0;arm<b.tentacleCount;arm++)if(arm!==b.chosenProbe&&b.contactLengths[arm]>b.tuning.spread){
+        sampleTendril(b,arm,1,point,false);
+        assert(Math.hypot(point[0]-b.centerX,point[2]-b.centerZ)>b.contactLengths[arm]*.70,'supporting arms retain their reach through the draw and flank');supportFrames++;
+      }
+    }
+    if(b.phase==='ENGULF'){
+      for(let arm=0;arm<b.tentacleCount;arm++){sampleTendril(b,arm,.5,point,false);assert.equal(point[3],0,'supporting arms resolve when the digestive sheet forms');}gathered=true;
+    }
+    if(i%6)continue;
+    for(let arm=0;arm<9;arm++){
+      if(arm>=b.tentacleCount&&arm<7)continue;
+      for(let j=0;j<33;j++){sampleTendril(b,arm,j/32,point,false);resolved.set(point,(arm*33+j)*4);sampleRawTendril(b,arm,j/32,point,false);raw.set(point,(arm*33+j)*4);}
+    }
+    beforeClearance+=exposedContacts(raw,b);afterClearance+=exposedContacts(resolved,b);
+  }
+  assert(b.meals===1&&gathered,'long supporting arms still permit complete feeding');
+}
+assert(supportFrames>100&&beforeClearance>100);
+assert(afterClearance<beforeClearance*.15,'clearance removes most exposed crossings throughout full transition sequences');
+const supportWalker=new CutislingV2();supportWalker.tuning.hunting=false;supportWalker.tuning.interpolation=false;supportWalker.reset();
+let stance=null,stanceFrames=0;
+for(let i=0;i<1200&&supportWalker.strides<3;i++){
+  const previous=supportWalker.phase;supportWalker.step(1/60);
+  if(previous==='SEEK'&&supportWalker.phase==='SPOT')stance={chosen:supportWalker.chosenProbe,lengths:supportWalker.probes.map(p=>p.length)};
+  if(stance&&(supportWalker.phase==='TRANSFER'||previous==='TRANSFER'&&supportWalker.phase==='SEEK')){
+    for(let arm=0;arm<supportWalker.tentacleCount;arm++)if(arm!==stance.chosen)assert(supportWalker.probes[arm].length>=stance.lengths[arm]*.85,'ground strides never reset the supporting limbs to stubs');stanceFrames++;
+  }
+}
+assert(supportWalker.strides===3&&stanceFrames>100);
+console.log('PASS retained supporting arms, active ground strides, feeding-only gathering and transition clearance', {beforeClearance,afterClearance});

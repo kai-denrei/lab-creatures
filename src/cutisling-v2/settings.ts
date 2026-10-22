@@ -7,6 +7,8 @@ export const V2_DEFAULTS={
   senseDistance:.5,anchorBulk:.5,whipStrength:4,whipFrequency:1.3,palette:'cinder' as V2Palette,
   tendrilWidth:1,branching:1,seed:571519,frenzy:5,whipCurl:2,whipLift:3,whipAsymmetry:2.5,flattenTime:.6,
   recoveryTime:3.4,amorphous:1.6,muscleStrength:1,limbLag:1.5,
+  supportReach:.88,limbClearance:1,
+  crawlSway:1,crawlLift:1,crawlRate:1,
   movingLure:true,lureSpeed:1.2,lureBounce:1.2,vibrationSense:3,
   interpolation:true,cycle:true,anchoredLocomotion:true,hunting:true,showParticles:false,showSkin:true,
   veinStrength:1,veinPulse:.2,veinSpeed:2,

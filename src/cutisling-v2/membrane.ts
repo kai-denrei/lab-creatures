@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type {CutislingV2} from './controller.ts';
 import {createV2TissueMaterial} from './tissue-material.ts';
-import {loopRadius,loopThickness,LOOP_SWEEP} from './feeding-shape.ts';
+import {crawlWave} from './crawling.ts';
+import {smooth,loopRadius,loopThickness,LOOP_SWEEP} from './feeding-shape.ts';
 
 /** One fixed material lattice. No hull, angular bins, polygon subtraction or retriangulation. */
 export function createV2Membrane(body:CutislingV2){
@@ -34,7 +35,7 @@ export function createV2Membrane(body:CutislingV2){
     const sheet=body.mix(body.previousSheet,body.sheet);
     tissue.update();mesh.visible=body.tuning.showSkin&&sheet>.001;
     if(!mesh.visible)return;
-    const cx=body.preyX,cz=body.preyZ;
+    const cx=body.preyX,cz=body.preyZ,clock=body.mix(body.previousTime,body.time);
     const spread=body.tuning.spread,ring=Math.max(.85,spread);
     const fusing=body.phase==='FLATTEN',recovering=body.phase==='RECOVER';
     const hole=body.mix(body.previousHole,body.hole),gap=0,lift=body.mix(body.previousLift,body.lift);
@@ -67,9 +68,14 @@ export function createV2Membrane(body:CutislingV2){
         const rimRound=Math.sqrt(Math.max(0,1-(1-Math.min(outside,inside))**2));
         const round=fusing?Math.sqrt(Math.max(0,1-(q*2-1)**2))*(1-sheet)+rimRound*sheet:rimRound;
         const dome=lift*Math.exp(-r*r/.20)+(recovering?.10*(1-sheet)*Math.sqrt(Math.max(0,1-q*q)):0);
+        // Low travelling folds leave the rim grounded and the prey seal undisturbed.
+        const crawl=sheet*smooth((r-body.preyRadius-.06)/.5)*Math.sin(Math.PI*q)**2;
+        const wave=crawlWave(clock,cos*2+sin*1.7-r*3,body.tuning.crawlRate);
+        const sideways=.06*spread*body.tuning.crawlSway*crawl*wave;
+        const rise=.05*spread*body.tuning.crawlLift*crawl*(.5+.5*wave)**2;
         for(let side=0;side<2;side++){
           const p=(side*layer+i*row+j)*3;
-          positions[p]=cx+cos*r;positions[p+1]=.012+localThickness*.5+(side===0?1:-1)*localThickness*.5*round+dome;positions[p+2]=cz+sin*r;
+          positions[p]=cx+cos*r-sin*sideways;positions[p+1]=.012+localThickness*.5+(side===0?1:-1)*localThickness*.5*round+dome+rise;positions[p+2]=cz+sin*r+cos*sideways;
         }
       }
     }
