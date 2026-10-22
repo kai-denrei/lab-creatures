@@ -1,7 +1,7 @@
 import { CREATURE_VARIANTS } from '../monster/variants.ts';
 import { LAB_VARIANTS } from '../arthropods/variants.ts';
 export const SPECIMENS=[
-  {id:'cutisling-v2',name:'Cutisling v2',family:'Collectives',description:'A new motion study with a persistent membrane, adjustable particle count and controls to isolate stutter. Cutisling v1 is preserved separately.',url:'?specimen=cutisling-v2'},
+  {id:'cutisling-v2',name:'Cutisling v2',family:'Collectives',description:'A network of three to seven tapering tentacles that seeks, anchors and pulls itself across the ground, then flanks, engulfs and digests prey. Builds on v1.',url:'?specimen=cutisling-v2'},
   {id:'cutisling',name:'Cutisling v1',family:'Collectives',description:'Inago’s flocking motion beneath one continuous veined membrane. The skin expands with searching fronts and contracts as the body gathers.',url:'?specimen=cutisling'},
   {id:'inago',name:'Inago',family:'Collectives',description:'One ominous ground organism. Hundreds of armored fragments migrate, spread into searching fronts, and coalesce into a dense living mass.',url:'?specimen=inago'},
   {id:'evasion-game',name:'Evasion Game',family:'Playground',description:'Control Reed with WASD. Escape twelve rolling Gorogoro: avoid slowing appendages, body pins and phagocytosis.',url:'?specimen=evasion-game'},
@@ -10,8 +10,9 @@ export const SPECIMENS=[
   {id:'cutis-maku-k',name:'Cutis-Maku-K',family:'Membranes',description:'Eight belt tiers: small, pale soft bodies through black membranes carrying a rigid red core.',url:'?specimen=cutis-maku-k'},
   {id:'cutis-maku',name:'Cutis-Maku',family:'Membranes',description:'A veined, living membrane. A slow reach fixes its anchor; the body snaps through and reforms.',url:'?specimen=cutis-maku'},
   ...LAB_VARIANTS.map(v=>({id:v.id,name:v.name,family:v.family==='Membrane'?'Membranes':'Arthropods',description:v.description,url:`?specimen=arthropod-lab&breed=${v.id}`})),
-  ...CREATURE_VARIANTS.map(v=>({id:v.id,name:v.name.split(' · ')[0],family:'Soft bodies',description:v.description,url:`?specimen=creature-lab&variant=${v.id}`})),
+  ...CREATURE_VARIANTS.map(v=>({id:v.id,name:v.name.split(' · ')[0],family:'Soft bodies',description:v.description,url:v.id==='nih-dairia'?'?specimen=nih-dairia':`?specimen=creature-lab&variant=${v.id}`})),
   {id:'slug',name:'Slug',family:'Crawlers',description:'A low, muscular body with a continuous crawling foot.',url:'?specimen=jelly-baby&creature=slug'},
   {id:'flat-snake',name:'Flat Snake',family:'Crawlers',description:'A flattened, elongated crawler with a rippling body.',url:'?specimen=jelly-baby&creature=flat-snake'},
+  {id:'nih-dairia-player',name:'Nih-Dairia · Player',family:'Playground',description:'Pilot the ancestor yourself. WASD walks the six-limbed body across the table; Space braces it.',url:'?specimen=jelly-baby&creature=nih-dairia'},
   {id:'jelly-baby',name:'Jelly Baby',family:'Playground',description:'The original soft-body creature. Walk, jump and stretch.',url:'?specimen=jelly-baby'},
 ];

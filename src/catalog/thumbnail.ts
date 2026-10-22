@@ -44,11 +44,16 @@ export async function renderThumbnail(id:string){
     if(id==='veil'){gait.target.set(.3,0,.2);for(let i=0;i<150;i++)gait.step(1/120);gait.center.x=0;gait.center.z=0;}
     model.update(gait);object=model.group;
   }else if(soft){const body=new SoftBody(await loadMonsterCage(soft.id));const mesh=createMonsterAppearance(body);updateMonsterAppearance(mesh);object=mesh;}
-  else{const actor=await createPlayerCreature(id==='slug'?'slug':id==='flat-snake'?'flat-snake':'jelly-baby');actor.update();object=actor.group;}
+  else{
+    const actor=await createPlayerCreature(id==='slug'?'slug':id==='flat-snake'?'flat-snake':id==='nih-dairia-player'?'nih-dairia':'jelly-baby');
+    // The playable ancestor is shown mid-stride under player input so its card differs from the reference lab.
+    if(id==='nih-dairia-player'&&'rig' in actor){const {rig,body}=actor;for(let i=0;i<80;i++){rig.step(1/240);body.step(1/240);}rig.move.set(1,0,0);for(let i=0;i<300;i++){rig.step(1/240);body.step(1/240);rig.afterStep();}}
+    actor.update();object=actor.group;
+  }
   const {scene,camera,lure}=createSpecimenScene(1.1);lure.visible=false;scene.add(object);
   const bounds=new THREE.Box3().setFromObject(object),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
   camera.aspect=640/420;camera.fov=34;const distance=Math.max(size.x*.75,size.z*.8,size.y)*2.75;
-  camera.position.copy(center).add(new THREE.Vector3(.48,.85,1).normalize().multiplyScalar(distance));camera.lookAt(center);camera.updateProjectionMatrix();
+  camera.position.copy(center).add(new THREE.Vector3(id==='nih-dairia-player'?1:.48,id==='nih-dairia-player'?.4:.85,id==='nih-dairia-player'?.7:1).normalize().multiplyScalar(distance));camera.lookAt(center);camera.updateProjectionMatrix();
   const renderer=new THREE.WebGPURenderer({antialias:true});await renderer.init();renderer.setSize(640,420);renderer.shadowMap.enabled=true;renderer.toneMapping=THREE.AgXToneMapping;renderer.toneMappingExposure=1.05;
   await loadEnvironment(renderer,scene);scene.environmentIntensity=.55;
   document.body.innerHTML='';document.body.style.cssText='margin:0;overflow:hidden';document.body.append(renderer.domElement);

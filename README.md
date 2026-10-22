@@ -7,14 +7,17 @@ An interactive WebGPU creature lab: sensory locomotion, predatory movement, feed
 - `/` — creature studies and project credits.
 - `/?specimen=nih-dairia` — the reference six-limbed creature, motion controls and prey experiments.
 - `/?specimen=creature-lab` — eight related body plans with independent tuning.
-- `/?specimen=arthropod-lab` — Aculis, Oculus, Giant Isopod and Veil, with a shared predator lab.
-- `/?specimen=jelly-baby` — the preserved original playground.
+- `/?specimen=arthropod-lab` — Aculis, Oculus, Monoculus, Giant Isopod and Veil, with a shared predator lab.
+- `/?specimen=cutis-maku`, `cutis-maku-k`, `cutis-maku-pearl`, `cutis-gorogoro` — the Cutis-Maku membrane lineages and their eight belt tiers.
+- `/?specimen=inago`, `cutisling`, `cutisling-v2` — the collective organisms.
+- `/?specimen=evasion-game` — play Reed against twelve rolling Gorogoro.
+- `/?specimen=jelly-baby` — the preserved original playground; `&creature=nih-dairia`, `slug` or `flat-snake` plays those bodies.
 
 Interactive scenes require a WebGPU-capable browser. The landing page loads without a GPU. Each scene loads independently.
 
 ## Arthropod and membrane studies
 
-The **Specimen** selector now includes **Aculis**, **Oculus** (`&breed=oculus`), **Giant Isopod** (`&breed=isopod`) and **Veil** (`&breed=veil`). The isopod has a broad armored silhouette, fourteen articulated walking legs, paired long and short antennae and a tail fan. Its anatomy is based on the [Aquarium of the Pacific's giant isopod reference](https://www.aquariumofpacific.org/onlinelearningcenter/species/giant_isopod/P1). Veil is an original form based on the supplied membrane reference: one closed, flat, eyeless sheet with twelve elastic sectors and webbing continuing all the way to the tips. There is no dome and no bare tentacle-like distal section. Each tip extends and retracts on its own seeded, irregular schedule; the center creeps behind stretched edges before accelerating into bursts. It uses a dedicated procedural elastic-rim controller rather than the arthropods’ alternating rigid-link gait. The rim stays close to the floor, with only small individual curls. Oculus has one eye forming its entire head, a single antenna and a greatly reduced trunk on longer legs. All four models share the Instinct/Lure and Walking modes.
+The **Specimen** selector now includes **Aculis**, **Oculus** (`&breed=oculus`), **Monoculus** (`&breed=monoculus`), **Giant Isopod** (`&breed=isopod`) and **Veil** (`&breed=veil`). The isopod has a broad armored silhouette, fourteen articulated walking legs, paired long and short antennae and a tail fan. Its anatomy is based on the [Aquarium of the Pacific's giant isopod reference](https://www.aquariumofpacific.org/onlinelearningcenter/species/giant_isopod/P1). Veil is an original form based on the supplied membrane reference: one closed, flat, eyeless sheet with twelve elastic sectors and webbing continuing all the way to the tips. There is no dome and no bare tentacle-like distal section. Each tip extends and retracts on its own seeded, irregular schedule; the center creeps behind stretched edges before accelerating into bursts. It uses a dedicated procedural elastic-rim controller rather than the arthropods’ alternating rigid-link gait. The rim stays close to the floor, with only small individual curls. Oculus has one eye forming its entire head, a single antenna and a greatly reduced trunk on longer legs. All four models share the Instinct/Lure and Walking modes.
 
 This lab's arena is **2.2 m across**, twice the previous diameter (four times the area), with enlarged travel, manual lure and camera bounds. Other labs keep their original table. All fifteen defaults are now the previous slider maxima, and every upper bound is doubled. For example, pace defaults to 1.8× with a 3.6× maximum; lowering defaults to 38 mm with a 76 mm maximum. Ground clearance and joint reach constrain the actual pose at extreme values. Revision-2 settings start with these new defaults and persist separately for each specimen, leaving the old Aculis settings record intact. **Restore defaults** returns to the previous-max values.
 
