@@ -1,6 +1,11 @@
 import './style.css';
 import './landing.css';
-if(import.meta.env.DEV){const badge=document.createElement('div');badge.className='dev-build';badge.textContent=`dev ${__BUILD_ID__}`;badge.title='Local development build: commit, dirty marker, server start time';document.body.append(badge);}
+if(import.meta.env.DEV){
+  // Commit and dirty marker, refreshed from the dev server so a stale tab is visible at a glance.
+  const badge=document.createElement('div');badge.className='dev-build';badge.textContent=`dev ${__BUILD_ID__}`;badge.title='Local development build: commit and dirty marker (* = uncommitted changes), refreshed every 10 s';document.body.append(badge);
+  const refresh=async()=>{try{const {id,at}=await (await fetch('__build-id',{cache:'no-store'})).json() as {id:string;at:string};badge.textContent=`dev ${id} · ${at.slice(11,16)}Z`;}catch{/* Production builds have no endpoint. */}};
+  void refresh();setInterval(()=>{void refresh();},10000);
+}
 async function openPage(){
   const specimen=new URLSearchParams(location.search).get('specimen');
   if(specimen==='cutisling-v2'){await import('./cutisling-v2/page.ts');}
