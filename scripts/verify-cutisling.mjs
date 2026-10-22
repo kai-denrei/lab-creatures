@@ -141,3 +141,11 @@ import {createCutislingMembrane} from '../src/cutisling/membrane.ts';
   assert(c.meals>=1,'the membrane run fed');
   pass('membrane: continuous skin on any body, fills outline, bounded, no circular hole, no metre-scale straight edges, clearance over prey');
 }
+// ---- E. update cost ----------------------------------------------------------
+{
+  const c=new Cutisling();for(let i=0;i<20*60;i++)c.step(1/60);
+  const t0=performance.now();let n=0;for(let i=0;i<120;i++){c.step(1/60);c.contours();n++;}
+  const ms=(performance.now()-t0)/n;console.log(`field+contour ${ms.toFixed(2)} ms per update`);
+  if(ms>3)console.warn('WARN update slower than the 3 ms budget');
+  pass('update cost measured');
+}
