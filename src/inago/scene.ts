@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Inago } from './controller.ts';
 import { Cutisling } from '../cutisling/controller.ts';
+import { Peristaling } from '../peristaling/controller.ts';
 import { createCutislingMembrane } from '../cutisling/membrane.ts';
 
-export function createInagoScene(host:HTMLElement,variant:'inago'|'cutisling'='inago'){
-  const organism=variant==='cutisling'?new Cutisling():new Inago(),feeding=organism instanceof Cutisling?organism:null,scene=new THREE.Scene();scene.background=new THREE.Color(0x090c0e);scene.fog=new THREE.FogExp2(0x090c0e,.024);
+export function createInagoScene(host:HTMLElement,variant:'inago'|'cutisling'|'peristaling'='inago'){
+  const organism=variant==='peristaling'?new Peristaling():variant==='cutisling'?new Cutisling():new Inago(),feeding=organism instanceof Cutisling?organism:null,scene=new THREE.Scene();scene.background=new THREE.Color(0x090c0e);scene.fog=new THREE.FogExp2(0x090c0e,.024);
   const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
   renderer.domElement.setAttribute('aria-label','Inago, one dark ground organism flowing through hundreds of crawling fragments. Click the floor to attract it.');host.append(renderer.domElement);
   const camera=new THREE.PerspectiveCamera(42,1,.05,120);camera.position.set(5.5,9,11.5);
@@ -26,7 +27,7 @@ export function createInagoScene(host:HTMLElement,variant:'inago'|'cutisling'='i
   const lure=new THREE.Mesh(new THREE.RingGeometry(.09,.12,32),new THREE.MeshBasicMaterial({color:0xee9463,side:THREE.DoubleSide}));lure.rotation.x=-Math.PI/2;lure.position.y=.012;lure.visible=false;scene.add(lure);
   const membrane=feeding?createCutislingMembrane(organism,(x,z)=>feeding.surfaceLift(x,z),()=>feeding.opening,(x,z)=>feeding.floorAt(x,z)):null;if(membrane)scene.add(membrane.group);
   const prey=feeding?new THREE.Mesh(new THREE.SphereGeometry(feeding.preyRadius,32,20),new THREE.MeshStandardMaterial({color:0xe7b76d,emissive:0xa65a19,emissiveIntensity:.3,roughness:.48})):null;if(prey)scene.add(prey);
-  renderer.domElement.setAttribute('aria-label',`${variant==='cutisling'?'Cutisling, a flock connected by a continuous veined membrane':'Inago, a collective ground organism'}. Click the floor to attract it.`);
+  renderer.domElement.setAttribute('aria-label',`${variant==='peristaling'?'Peristaling, a ribbon of veined membrane crawling on a travelling contraction':variant==='cutisling'?'Cutisling, a flock connected by a continuous veined membrane':'Inago, a collective ground organism'}. Click the floor to attract it.`);
   const pose=new THREE.Object3D(),color=new THREE.Color();
   if(motiles)for(let i=0;i<organism.count;i++){const {armor}=motiles;color.setHSL(.56,.08,.10+organism.seed[i]*.09);armor.setColorAt(i,color);}if(motiles)motiles.armor.instanceColor!.needsUpdate=true;
   function draw(follow=true){

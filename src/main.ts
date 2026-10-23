@@ -9,7 +9,7 @@ if(import.meta.env.DEV){
 async function openPage(){
   const specimen=new URLSearchParams(location.search).get('specimen');
   if(specimen==='cutisling-v2'){await import('./cutisling-v2/page.ts');}
-  else if(specimen==='inago'||specimen==='cutisling'){await import('./inago/page.ts');}
+  else if(specimen==='inago'||specimen==='cutisling'||specimen==='peristaling'){await import('./inago/page.ts');}
   else if(specimen==='evasion-game'){await import('./evasion/page.ts');}
   else if(specimen==='jelly-baby'){
     document.body.classList.add('baby-playground');

@@ -35,6 +35,8 @@ export class Cutisling extends Inago{
   private lastLoopCheck=-Infinity;
   private loopResult=false;
   readonly hollowRadius=.68;
+  /** Distance to prey at which the organism stops travelling and fans out. */
+  protected approachDistance=4.8;
   preyX=2.1;preyZ=2.2;readonly preyRadius=.24;
   get locked(){return this.feeding!=='HUNT';}
   get coverage(){return this.feeding==='COVER'?smooth(this.feedingTime/this.tuning.engulfTime):this.feeding==='ABSORB'?1:this.feeding==='RECOVER'?1-smooth(this.feedingTime/1.2):0;}
@@ -205,7 +207,7 @@ export class Cutisling extends Inago{
         this.target={x:this.preyX,z:this.preyZ};this.prepareLocomotion(h);super.step(h/this.pace);this.pin();
         this.avoidPrey(h);
         const dx=this.preyX-this.centerX,dz=this.preyZ-this.centerZ,distance=Math.hypot(dx,dz);
-        if(distance<4.8){this.approachX=dx/(distance||1);this.approachZ=dz/(distance||1);this.feeding='FAN_OUT';this.feedingTime=0;this.gapAngle=Math.atan2(this.approachZ,this.approachX);this.gapTarget=this.gapAngle;}
+        if(distance<this.approachDistance){this.approachX=dx/(distance||1);this.approachZ=dz/(distance||1);this.feeding='FAN_OUT';this.feedingTime=0;this.gapAngle=Math.atan2(this.approachZ,this.approachX);this.gapTarget=this.gapAngle;}
       }else{
         this.feedingTime+=h;
         // Keep the same neighbor alignment, separation, eddies and acceleration limits.

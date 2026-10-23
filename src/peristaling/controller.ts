@@ -4,6 +4,8 @@ const WAVELENGTH=1.1,BASE_PERIOD=1.6;
 /** A ribbon that crawls with a retrograde peristaltic wave; feeding, skin and prey come from Cutisling. */
 export class Peristaling extends Cutisling{
   readonly wave={time:0,factor:1,target:1,cycle:0};
+  // The ribbon crawls close before it wraps, so the gait is seen on every hunt.
+  protected override approachDistance=2.6;
   private readonly thrustX=new Float64Array(256);
   private readonly thrustZ=new Float64Array(256);
   private readonly along=new Float64Array(256);

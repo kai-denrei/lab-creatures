@@ -9,7 +9,7 @@ An interactive WebGPU creature lab: sensory locomotion, predatory movement, feed
 - `/?specimen=creature-lab` — eight related body plans with independent tuning.
 - `/?specimen=arthropod-lab` — Aculis, Oculus, Monoculus, Giant Isopod and Veil, with a shared predator lab.
 - `/?specimen=cutis-maku`, `cutis-maku-k`, `cutis-maku-pearl`, `cutis-gorogoro` — the Cutis-Maku membrane lineages and their eight belt tiers.
-- `/?specimen=inago`, `cutisling`, `cutisling-v2` — the collective organisms.
+- `/?specimen=inago`, `cutisling`, `peristaling`, `cutisling-v2` — the collective organisms.
 - `/?specimen=evasion-game` — play Reed against twelve rolling Gorogoro.
 - `/?specimen=jelly-baby` — the preserved original playground; `&creature=nih-dairia`, `slug` or `flat-snake` plays those bodies.
 
@@ -459,6 +459,12 @@ Feeding runs **Fan out → Encircle → Cover → Absorb → Recover**. Fan out 
 Movement is anchor-and-drag rather than glide. Three lateral muscle bands run staggered stride clocks (about 1.2–2.3 s, re-seeded each stride). In each band the leading drivers reach with a swelling, fading effort, then plant and grip the ground; the trailing drivers are drawn toward the planted front late in the haul, after the body has stretched; between contractions every driver sits under ground friction. The eased envelopes keep the motion elastic rather than staccato. The flock centre follows the drivers instead of advancing on its own, so all travel comes from strides, including the crescent and the tightening ring. **Stride rhythm** scales the clocks and **Grip** scales friction and pinning; Grip 0 restores the earlier glide for comparison.
 
 `npm run test:cutisling` checks the contour tracer (orientation, holes, separation, speck removal), the field skin (one continuous skin at rest, spread and contraction, hollow and cover, distinct approaches, tension), feeding (completion within 60 s under defaults and extremes, one body around the prey, the hard cap, an irregular hollow, determinism, pause, reset), the membrane (fills its outline, bounded, no circular hole, no metre-scale straight edges, every cap and rim vertex outside the prey during Cover and Absorb), strides (anchored travel, pinned grips, feeding under stride and grip extremes) and the update cost. Cutisling currently has a standalone study, not an Evasion integration.
+
+### Peristaling — a ribbon on a travelling contraction
+
+Open `?specimen=peristaling` or **Peristaling** in Collectives. It shares Cutisling's field skin, prey hollow, crescent, encircle, cover and absorb, and the clearance dome; what differs is the body and the gait. Cohesion is elliptical about the heading, so the organism is a ribbon roughly two and a half times longer than wide that wraps into a ring to feed. Each flock driver's contraction phase comes from its position along the heading, so a retrograde peristaltic wave runs down the body: extended bands thrust forward and widen, contracted bands grip the ground under heavy friction and squeeze toward the axis, and the skin shows bulges and waists travelling backward while the body advances. The wave's speed is re-rolled every cycle from a seeded hash between 0.55× and 1.6×, blended over 0.3 s, with roughly one cycle in seven a near stall, so the rhythm hesitates and surges instead of ticking like a slug. **Wave rhythm** scales the base period and **Anchor grip** scales the contraction friction; zero glides.
+
+`npm run test:peristaling` checks that the travelling body stays a ribbon, that forward speed is locked to the wave phase, that the along-axis density shows travelling peaks, that the wave speed takes several distinct values, travel distance, feeding completion under slider extremes, one body around the prey with clearance over it during cover, determinism, pause, reset and update cost.
 
 ### Cutisling v2 — tentacle network and feeding study
 

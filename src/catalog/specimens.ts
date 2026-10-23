@@ -1,6 +1,7 @@
 import { CREATURE_VARIANTS } from '../monster/variants.ts';
 import { LAB_VARIANTS } from '../arthropods/variants.ts';
 export const SPECIMENS=[
+  {id:'peristaling',name:'Peristaling',family:'Collectives',description:'A ribbon of living skin that crawls on a travelling contraction. The wave speeds, slows and sometimes stalls, then it surrounds and swallows prey.',url:'?specimen=peristaling'},
   {id:'cutisling-v2',name:'Cutisling v2',family:'Collectives',description:'A network of three to seven tapering tentacles that seeks, anchors and pulls itself across the ground, then flanks, engulfs and digests prey. Builds on v1.',url:'?specimen=cutisling-v2'},
   {id:'cutisling',name:'Cutisling v1',family:'Collectives',description:'Inago’s flocking motion beneath one continuous veined membrane. The skin expands with searching fronts and contracts as the body gathers.',url:'?specimen=cutisling'},
   {id:'inago',name:'Inago',family:'Collectives',description:'One ominous ground organism. Hundreds of armored fragments migrate, spread into searching fronts, and coalesce into a dense living mass.',url:'?specimen=inago'},
