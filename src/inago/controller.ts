@@ -11,6 +11,8 @@ export class Inago{
   private heads=new Int32Array(1600);private next=new Int32Array(this.count);
   time=0;centerX=0;centerZ=0;heading=0;radius=1.3;
   pace=1;spread=1;cohesion=1;paused=false;
+  /** Per-driver limits; subclasses with faster bodies may raise them. */
+  protected accelerationLimit=9;protected speedScale=1;
   target:{x:number;z:number;blend?:number}|null=null;
   get phase():InagoPhase{const t=this.time%18;return t<6?'MOVE':t<11?'SPREAD':'COALESCE';}
   get phaseProgress(){const t=this.time%18;return t<6?t/6:t<11?(t-6)/5:(t-11)/7;}
@@ -82,9 +84,9 @@ export class Inago{
       if(intent){const blend=intent.blend??1;ax+=(intent.x+repelX*.7+Math.sin(drift)*.35-ax)*blend;az+=(intent.z+repelZ*.7+Math.cos(drift*1.13)*.35-az)*blend;}
       if(neighbors){ax+=(alignX/neighbors-this.vx[i])*1.8;az+=(alignZ/neighbors-this.vz[i])*1.8;}
       ax-=this.vx[i]*1.6;az-=this.vz[i]*1.6;
-      const acceleration=Math.max(1,Math.hypot(ax,az)/9);ax/=acceleration;az/=acceleration;
+      const acceleration=Math.max(1,Math.hypot(ax,az)/this.accelerationLimit);ax/=acceleration;az/=acceleration;
       let vx=this.vx[i]+ax*dt,vz=this.vz[i]+az*dt;
-      const cap=2.4+this.seed[i]*.5,limit=Math.max(1,Math.hypot(vx,vz)/cap);vx/=limit;vz/=limit;
+      const cap=(2.4+this.seed[i]*.5)*this.speedScale,limit=Math.max(1,Math.hypot(vx,vz)/cap);vx/=limit;vz/=limit;
       this.nextX[i]=vx;this.nextZ[i]=vz;
     }
     for(let i=0;i<this.count;i++){

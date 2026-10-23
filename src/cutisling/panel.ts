@@ -30,7 +30,7 @@ const groups:{name:string;controls:{key:NumericKey;label:string;min:number;max:n
 ];
 const format=(key:NumericKey,value:number)=>key==='engulfTime'?`${value.toFixed(2)} s`:value.toFixed(key==='lipWidth'?3:2);
 
-export function createCutislingPanel(body:Cutisling,refresh:()=>void,signal:AbortSignal,labels:Partial<Record<'stride'|'grip',{label:string;hint:string}>>={}){
+export function createCutislingPanel(body:Cutisling,refresh:()=>void,signal:AbortSignal,labels:Partial<Record<'stride'|'grip',{label:string;hint:string;min?:number}>>={}){
   const text=(c:{key:NumericKey;label:string;hint:string})=>({label:(c.key==='stride'||c.key==='grip')&&labels[c.key]?labels[c.key]!.label:c.label,hint:(c.key==='stride'||c.key==='grip')&&labels[c.key]?labels[c.key]!.hint:c.hint});
   const panel=document.createElement('details');panel.className='cutisling-tuning';panel.id='cutisling-tuning';
   panel.innerHTML=`<summary><span>Experiment controls</span><span id="cutisling-mode-label">Flock skin</span></summary>
@@ -39,7 +39,7 @@ export function createCutislingPanel(body:Cutisling,refresh:()=>void,signal:Abor
       <p id="cutisling-approach-description">${APPROACHES[0].description}</p>
       <label class="cutisling-check"><input id="cutisling-hunting" type="checkbox" checked> Hunt prey <span>Off: observe the original flock cycle</span></label>
       <fieldset id="cutisling-basic"><legend>Movement</legend></fieldset>
-      ${groups.map(group=>`<fieldset><legend>${group.name}</legend>${group.controls.map(c=>`<label title="${text(c).hint}" for="cutisling-${c.key}">${text(c).label}<output id="cutisling-${c.key}-value">${format(c.key,body.tuning[c.key])}</output><input id="cutisling-${c.key}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${body.tuning[c.key]}" aria-describedby="cutisling-${c.key}-hint"><span class="cutisling-control-hint" id="cutisling-${c.key}-hint">${c.hint}</span></label>`).join('')}</fieldset>`).join('')}
+      ${groups.map(group=>`<fieldset><legend>${group.name}</legend>${group.controls.map(c=>`<label title="${text(c).hint}" for="cutisling-${c.key}">${text(c).label}<output id="cutisling-${c.key}-value">${format(c.key,body.tuning[c.key])}</output><input id="cutisling-${c.key}" type="range" min="${(c.key==='stride'||c.key==='grip')&&labels[c.key]?.min!==undefined?labels[c.key]!.min:c.min}" max="${c.max}" step="${c.step}" value="${body.tuning[c.key]}" aria-describedby="cutisling-${c.key}-hint"><span class="cutisling-control-hint" id="cutisling-${c.key}-hint">${c.hint}</span></label>`).join('')}</fieldset>`).join('')}
       <button type="button" id="cutisling-defaults">Restore tuning defaults</button>
       <p class="cutisling-tuning-note">Changes apply live, including while paused. Reset in the bottom bar restarts the same experiment with your settings.</p>
     </div>`;

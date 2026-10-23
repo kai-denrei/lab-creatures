@@ -27,7 +27,7 @@ export async function renderThumbnail(id:string){
     document.body.innerHTML='<main id="inago-thumbnail" style="width:640px;height:420px"></main>';document.body.style.cssText='margin:0;overflow:hidden';
     const lab=createInagoScene(document.querySelector<HTMLElement>('#inago-thumbnail')!,id as 'inago'|'cutisling'|'peristaling');
     // Cutisling is shown with its ring closed around the prey, not mid-reshaping.
-    for(let i=0;i<(id==='cutisling'?660:id==='peristaling'?300:480);i++)lab.organism.step(1/60);
+    for(let i=0;i<(id==='cutisling'?660:id==='peristaling'?150:480);i++)lab.organism.step(1/60);
     const x=lab.organism.x.reduce((sum,v)=>sum+v,0)/lab.organism.count,z=lab.organism.z.reduce((sum,v)=>sum+v,0)/lab.organism.count;lab.controls.target.set(x,0,z);lab.camera.position.set(x+4,8,z+9);lab.draw(false);return;
   }
   if(id==='cutis-maku'||id==='cutis-maku-k'||id==='cutis-maku-pearl'||id==='cutis-gorogoro'){
