@@ -52,8 +52,10 @@ export class Peristaling extends Cutisling{
     if(!this.locked){
       // Elliptical cohesion keeps the ribbon.
       const a=this.radius*1.3,b=this.radius*.5,rho=Math.hypot(this.along[i]/a,this.across[i]/b);
-      if(rho>1){const cx=x-this.centerX,cz=z-this.centerZ,rc=Math.hypot(cx,cz)||.001,pull=(rho-1)*4;ax-=cx/rc*pull;az-=cz/rc*pull;}
+      // Linear inside the margin, quadratic beyond it: stragglers are reeled back before they shear off.
+      if(rho>1){const cx=x-this.centerX,cz=z-this.centerZ,rc=Math.hypot(cx,cz)||.001,pull=(rho-1)*6+(rho-1)**2*20;ax-=cx/rc*pull;az-=cz/rc*pull;}
     }
+    else{const far=Math.max(0,r-3.4);if(far>0){ax-=dx/r*far*14;az-=dz/r*far*14;}}
     const hx=Math.cos(this.heading),hz=Math.sin(this.heading),gain=THRUST*(1+.6*this.wave.burst);
     if(grip<.05||c>0){const power=grip<.05?gain*.4:c*c*gain;ax+=this.thrustX[i]*power;az+=this.thrustZ[i]*power;}
     else{
