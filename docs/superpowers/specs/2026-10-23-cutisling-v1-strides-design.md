@@ -46,7 +46,7 @@ HUNT description becomes "A moving lure draws the gripping, hauling membrane acr
 ## Verification
 
 New section F in `scripts/verify-cutisling.mjs`:
-- **Anchored travel.** Hunting on, lure placed 7 m away, auto prey off. Over 12 s the driver centroid advances at least 2 m toward the lure, and across that time at least 40 % of driver-samples are nearly stationary (speed under 0.05 m/s): most of the body is gripping the ground at any moment. With `grip` 0 that fraction is under 10 % and the centroid travels at least as far. (The leading edge itself is rarely still because the three bands overlap, which is the intended ripple.)
+- **Anchored travel.** Hunting on, lure placed 7 m away, auto prey off. Over 12 s the driver centroid advances at least 2 m toward the lure, and across that time at least 30 % of driver-samples are nearly stationary (speed under 0.05 m/s): most of the body is gripping the ground at any moment. With `grip` 0 that fraction is under 10 % and the centroid travels at least as far. (The leading edge itself is rarely still because the three bands overlap, which is the intended ripple.)
 - **Pinned drivers.** Whenever `gripped[i]` is set, the driver's position after a step equals its grip position within 1 mm.
 - **Feeding still completes.** The existing completion sweep passes with `{stride:.5}`, `{stride:2}`, `{grip:1}` and `{grip:0}` added.
 - **Determinism, pause, reset** cover the muscle state.

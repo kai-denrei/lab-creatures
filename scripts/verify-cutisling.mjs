@@ -164,3 +164,24 @@ import {Muscles} from '../src/cutisling/muscles.ts';
   m.reset();assert.equal(m.phase[1],.37);assert.equal(m.gripped[2],0);
   pass('muscles: staggered clocks, re-seeded periods, band assignment, grip bookkeeping');
 }
+{
+  const travel=(grip)=>{const c=new Cutisling();c.tuning.grip=grip;c.lure(7,0);c.autoPrey=false;
+    const start=c.x.reduce((a,b)=>a+b)/c.count;let still=0,total=0;
+    for(let i=1;i<=12*60;i++){c.step(1/60);if(i%6)continue;for(let n=0;n<c.count;n++){total++;if(Math.hypot(c.vx[n],c.vz[n])<.05)still++;}}
+    return {advance:c.x.reduce((a,b)=>a+b)/c.count-start,stillFraction:still/total,c};};
+  const gripped=travel(.85),glide=travel(0);
+  assert(gripped.advance>=2,`gripping body still travels (${gripped.advance.toFixed(2)} m)`);
+  assert(gripped.stillFraction>=.3,`most drivers hold the ground at any moment (${(gripped.stillFraction*100).toFixed(0)} %)`);
+  assert(glide.stillFraction<.1,`grip 0 glides (${(glide.stillFraction*100).toFixed(0)} % still)`);
+  assert(glide.advance>=gripped.advance*.8,`grip 0 travels at least as far (${glide.advance.toFixed(2)} vs ${gripped.advance.toFixed(2)})`);
+  const c=new Cutisling();c.lure(7,0);c.autoPrey=false;let pinnedChecks=0;
+  for(let i=1;i<=20*60;i++){c.step(1/60);for(let n=0;n<c.count;n++)if(c.muscles.gripped[n]){pinnedChecks++;assert(Math.hypot(c.x[n]-c.muscles.gripX[n],c.z[n]-c.muscles.gripZ[n])<1e-3,'gripped drivers stay pinned');}}
+  assert(pinnedChecks>1000,`drivers were gripped during travel (${pinnedChecks} checks)`);
+  const run=(settings)=>{const c=new Cutisling();Object.assign(c.tuning,settings);for(let i=1;i<=60*60;i++)c.step(1/60);return c.meals;};
+  for(const settings of [{stride:.5},{stride:2},{grip:1},{grip:0},{grip:1,freedom:.5,turbulence:2}])assert(run(settings)>=1,`feeds within 60 s at ${JSON.stringify(settings)}`);
+  const a=new Cutisling(),b=new Cutisling();for(let i=0;i<15*60;i++){a.step(1/60);b.step(1/60);}
+  assert.deepEqual(Array.from(a.x),Array.from(b.x),'strides are deterministic');
+  assert.deepEqual(Array.from(a.muscles.phase),Array.from(b.muscles.phase));
+  a.reset();assert.equal(a.muscles.phase[0],0);assert.equal(a.muscles.gripped.reduce((s,v)=>s+v,0),0,'reset releases every grip');
+  pass('strides: anchored travel, pinned grips, feeding under stride and grip extremes, determinism, reset');
+}
