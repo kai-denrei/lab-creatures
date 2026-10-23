@@ -69,6 +69,9 @@ export class FieldSkin{
       for(let j=this.j0;j<=this.j1;j++)for(let i=this.i0;i<=this.i1;i++){
         const k=j*NODES+i,l=i>0?k-1:k,r=i<NODES-1?k+1:k;scratch[k]=(target[l]+2*target[k]+target[r])*.25;
       }
+      // The vertical pass reads one row beyond the box; clear those apron rows so a stale earlier box cannot leak in.
+      if(this.j0>0)scratch.fill(0,(this.j0-1)*NODES+this.i0,(this.j0-1)*NODES+this.i1+1);
+      if(this.j1<NODES-1)scratch.fill(0,(this.j1+1)*NODES+this.i0,(this.j1+1)*NODES+this.i1+1);
       for(let j=this.j0;j<=this.j1;j++)for(let i=this.i0;i<=this.i1;i++){
         const k=j*NODES+i,u=j>0?k-NODES:k,d=j<NODES-1?k+NODES:k;target[k]=(scratch[u]+2*scratch[k]+scratch[d])*.25;
       }
