@@ -51,7 +51,7 @@ import {Muscles} from '../src/cutisling/muscles.ts';
   assert.equal(m.stage(0),'reach');assert.equal(m.stage(1),'plant');assert.equal(m.stage(2),'haul');
   const periods=[];for(let i=0;i<400;i++){m.advance(1/60,1);if(m.phase[0]<1/60/m.period[0])periods.push(m.period[0]);}
   assert(periods.length>=3&&new Set(periods.map(p=>p.toFixed(3))).size>=2,'stride periods are re-seeded each stride');
-  for(const p of periods)assert(p>=1.05*.85-1e-9&&p<=1.05*1.15+1e-9,'periods stay within ±15 % of the base');
+  for(const p of periods)assert(p>=1.7*.85-1e-9&&p<=1.7*1.15+1e-9,'periods stay within ±15 % of the base');
   m.assign(Float64Array.from([-1,0,1,0]),Float64Array.from([0,0,0,2]),0,0,0,1,.3);
   assert.deepEqual(Array.from(m.band),[0,1,2,1],'bands follow the lateral offset across the heading');
   m.grip(2,1,0);assert.equal(m.gripped[2],1);assert.equal(m.gripBand[2],2);m.release(1);assert.equal(m.gripped[2],1);m.release(2);assert.equal(m.gripped[2],0);

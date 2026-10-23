@@ -1,7 +1,9 @@
 const hash=(n:number)=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);};
 export type Stage='reach'|'plant'|'haul'|'release';
 export const BANDS=3;
-const BASE=[1.05,.9,1.25],OFFSET=[0,.37,.71];
+const BASE=[1.7,1.45,2.0],OFFSET=[0,.37,.71];
+// Stage boundaries within a stride: reach, plant, haul, release.
+const REACH=.36,PLANT=.46,HAUL=.86;
 /** Three lateral muscle bands with staggered stride clocks; drivers grip the ground between contractions. */
 export class Muscles{
   readonly phase=new Float64Array(BANDS);
@@ -16,7 +18,9 @@ export class Muscles{
       if(this.phase[k]>=1){this.phase[k]-=1;this.strides[k]++;this.period[k]=BASE[k]*(.85+.3*hash(this.strides[k]*7+k));}
     }
   }
-  stage(k:number):Stage{const p=this.phase[k];return p<.26?'reach':p<.4?'plant':p<.8?'haul':'release';}
+  stage(k:number):Stage{const p=this.phase[k];return p<REACH?'reach':p<PLANT?'plant':p<HAUL?'haul':'release';}
+  /** Progress 0→1 through the current stage, for eased power envelopes. */
+  progress(k:number){const p=this.phase[k];return p<REACH?p/REACH:p<PLANT?(p-REACH)/(PLANT-REACH):p<HAUL?(p-PLANT)/(HAUL-PLANT):(p-HAUL)/(1-HAUL);}
   /** Bands by lateral offset from the centroid across the heading (hx,hz). */
   assign(x:Float64Array,z:Float64Array,cx:number,cz:number,hx:number,hz:number,width:number){
     for(let i=0;i<this.band.length;i++){const lateral=-(x[i]-cx)*hz+(z[i]-cz)*hx;this.band[i]=lateral<-width?2:lateral>width?0:1;}

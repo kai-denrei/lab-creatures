@@ -11,8 +11,8 @@ Cutisling glides. The flock centre advances kinematically at constant speed, eve
 ### Bands and stride clocks
 
 - Three lateral bands relative to the body's heading: left, centre, right. A driver's band is recomputed every substep from its lateral offset to the driver centroid (`|lateral| < 0.3·radius` is the centre band). Membership drifts slowly as drivers move, which is intended.
-- Each band has a stride clock. Base periods 1.05, 0.9 and 1.25 s, phase offsets 0, 0.37 and 0.71 of a cycle. At each wrap the next period is `base·(0.85 + 0.3·hash(strideIndex))`. The **Stride rhythm** setting (0.5–2, default 1) scales all periods.
-- Cycle stages by phase: Reach 0–0.3, Plant 0.3–0.4, Haul 0.4–0.85, Release 0.85–1.
+- Each band has a stride clock. Base periods 1.7, 1.45 and 2.0 s (revised from 1.05/0.9/1.25 after the owner asked for stretchier, less staccato motion), phase offsets 0, 0.37 and 0.71 of a cycle. At each wrap the next period is `base·(0.85 + 0.3·hash(strideIndex))`. The **Stride rhythm** setting (0.5–2, default 1) scales all periods.
+- Cycle stages by phase: Reach 0–0.36, Plant 0.36–0.46, Haul 0.46–0.86, Release 0.86–1. Power within Reach and Haul follows a sin² bump over the stage, and the haul's draw toward the planted front ramps in after 20 % of the stage, so contractions swell and fade.
 
 ### Driver forces
 
@@ -27,7 +27,7 @@ Leading drivers of a band: in HUNT those ahead of the band centroid along the he
 | Haul | stay gripped | `F_i` plus a contractile pull toward the band's gripped centroid, proportional to distance |
 | Release | grip off, friction | friction |
 
-Friction: acceleration `−v·(1.6 + 8·grip)`, so an unpowered driver stops within about 0.15 s at the default grip. **Grip** (0–1, default 0.85) scales friction and pinning; at 0 no driver is pinned, friction is Inago's 1.6 /s and every stage applies `F_i`, which reproduces today's glide for comparison.
+Friction: acceleration `−v·(1.6 + 7·grip)` scaled by `(1 − power)`, so an unpowered driver stops within about 0.15 s at the default grip. **Grip** (0–1, default 0.85) scales friction and pinning; at 0 no driver is pinned, friction is Inago's 1.6 /s and every stage applies `F_i`, which reproduces today's glide for comparison.
 
 The flock centre follows the driver centroid each substep instead of advancing on its own. All travel comes from strides.
 

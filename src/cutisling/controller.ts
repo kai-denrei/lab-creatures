@@ -159,14 +159,21 @@ export class Cutisling extends Inago{
     const cx=x-this.centerX,cz=z-this.centerZ,rc=Math.hypot(cx,cz)||.001,extent=this.radius*(.75+.25*this.seed[i]),cohesion=!this.locked?Math.max(0,rc-extent)*1.5:0;
     let ax=dx/r*exclusion-cx/rc*cohesion,az=dz/r*exclusion-cz/rc*cohesion;
     if(grip<.05)return {blend:1,x:ax+fx,z:az+fz};
-    const k=this.muscles.band[i],stage=this.muscles.stage(k),lead=this.leading[i]===1,held=this.muscles.gripped[i]===1;
-    const friction=12*grip,freedom=this.tuning.freedom;
+    const k=this.muscles.band[i],stage=this.muscles.stage(k),u=this.muscles.progress(k),lead=this.leading[i]===1,held=this.muscles.gripped[i]===1;
+    // Eased envelopes: contractions swell and fade instead of switching, so the body stretches rather than jerks.
+    const bump=Math.sin(Math.PI*Math.min(1,u))**2,friction=7*grip,freedom=this.tuning.freedom;
     let power=0,haulX=0,haulZ=0;
     if(held)power=0;
-    else if(stage==='reach')power=lead?1.8:0;
-    else if(stage==='haul'){power=lead?freedom:1;const g=this.gripCentroid,kk=k*3;if(!lead&&g[kk+2]>0){haulX=(g[kk]/g[kk+2]-x)*3.5*grip;haulZ=(g[kk+1]/g[kk+2]-z)*3.5*grip;}}
-    else power=stage==='plant'?freedom*.5:0;
-    ax+=fx*power+haulX-vx*friction*(1-power);az+=fz*power+haulZ-vz*friction*(1-power);
+    else if(stage==='reach')power=lead?2.2*bump:freedom*.3*bump;
+    else if(stage==='haul'){
+      power=lead?freedom*.5:.8*bump;
+      // The rear is drawn in late in the haul, after the stretch has built.
+      const g=this.gripCentroid,kk=k*3,draw=smooth((u-.2)/.6)*(1-.5*Math.max(0,u-.8)/.2);
+      if(!lead&&g[kk+2]>0){haulX=(g[kk]/g[kk+2]-x)*2.4*grip*draw;haulZ=(g[kk+1]/g[kk+2]-z)*2.4*grip*draw;}
+    }
+    else power=stage==='plant'?freedom*.3:0;
+    const brake=friction*(1-Math.min(1,power));
+    ax+=fx*power+haulX-vx*brake;az+=fz*power+haulZ-vz*brake;
     return {blend:1,x:ax,z:az};
   }
   private pin(){
