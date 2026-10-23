@@ -98,7 +98,7 @@ export class Cutisling extends Inago{
   }
   private squeeze(){return this.feeding==='ENCIRCLE'?smooth((this.feedingTime-4)/10):0;}
   /** Behaviour force before muscles: where this driver wants to go right now. Exclusion is added separately. */
-  private desiredForce(i:number,x:number,z:number):[number,number]{
+  protected desiredForce(i:number,x:number,z:number):[number,number]{
     const dx=x-this.preyX,dz=z-this.preyZ,r=Math.hypot(dx,dz)||.001,theta=Math.atan2(dz,dx),squeeze=this.squeeze();
     const turbulence=this.tuning.turbulence*(1-.7*squeeze);
     const wave=Math.sin(this.time*1.7+dx*2.3+Math.sin(dz*1.8))*turbulence,eddy=Math.sin(this.time*.9+dz*2-dx)*turbulence;
@@ -127,7 +127,7 @@ export class Cutisling extends Inago{
     return [-dx/r*pull-dz/r*(curl+gapPull+spread)+eddy*.9,-dz/r*pull+dx/r*(curl+gapPull+spread)+wave*.9];
   }
   /** Per-substep muscle bookkeeping: bands, desired forces, leading drivers, grips and releases. */
-  private prepareMuscles(h:number){
+  protected prepareLocomotion(h:number){
     let cx=0,cz=0;for(let i=0;i<this.count;i++){cx+=this.x[i];cz+=this.z[i];}cx/=this.count;cz/=this.count;
     // The centre follows the body; all travel comes from strides.
     this.centerX=cx;this.centerZ=cz;
@@ -176,7 +176,7 @@ export class Cutisling extends Inago{
     ax+=fx*power+haulX-vx*brake;az+=fz*power+haulZ-vz*brake;
     return {blend:1,x:ax,z:az};
   }
-  private pin(){
+  protected pin(){
     if(this.tuning.grip<.05)return;
     const m=this.muscles;
     for(let i=0;i<this.count;i++)if(m.gripped[i]){this.x[i]=m.gripX[i];this.z[i]=m.gripZ[i];this.vx[i]=0;this.vz[i]=0;}
@@ -202,7 +202,7 @@ export class Cutisling extends Inago{
     while(remaining>1e-9){const h=Math.min(1/60,remaining);remaining-=h;
       if(!this.locked){
         if(this.autoPrey){const tx=2.8*Math.sin(this.time*.13+.8+this.meals*1.9),tz=2.6*Math.cos(this.time*.11+.5+this.meals*1.3);this.preyX+=(tx-this.preyX)*(1-Math.exp(-h*.8));this.preyZ+=(tz-this.preyZ)*(1-Math.exp(-h*.8));}
-        this.target={x:this.preyX,z:this.preyZ};this.prepareMuscles(h);super.step(h/this.pace);this.pin();
+        this.target={x:this.preyX,z:this.preyZ};this.prepareLocomotion(h);super.step(h/this.pace);this.pin();
         this.avoidPrey(h);
         const dx=this.preyX-this.centerX,dz=this.preyZ-this.centerZ,distance=Math.hypot(dx,dz);
         if(distance<4.8){this.approachX=dx/(distance||1);this.approachZ=dz/(distance||1);this.feeding='FAN_OUT';this.feedingTime=0;this.gapAngle=Math.atan2(this.approachZ,this.approachX);this.gapTarget=this.gapAngle;}
@@ -210,7 +210,7 @@ export class Cutisling extends Inago{
         this.feedingTime+=h;
         // Keep the same neighbor alignment, separation, eddies and acceleration limits.
         // Only the collective intention changes: a crescent, then an escalating squeeze.
-        this.target={x:this.preyX,z:this.preyZ};this.prepareMuscles(h);super.step(h/this.pace);this.pin();this.avoidPrey(h);
+        this.target={x:this.preyX,z:this.preyZ};this.prepareLocomotion(h);super.step(h/this.pace);this.pin();this.avoidPrey(h);
         if(this.feeding==='FAN_OUT'&&this.feedingTime>=4.5){this.feeding='ENCIRCLE';this.feedingTime=0;}
         else if(this.feeding==='ENCIRCLE'){
           // Checking the contour at 10 Hz preserves the closure dwell without tracing every substep.
