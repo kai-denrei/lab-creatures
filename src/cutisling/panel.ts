@@ -8,6 +8,8 @@ const groups:{name:string;controls:{key:NumericKey;label:string;min:number;max:n
     {key:'freedom',label:'Flock freedom',min:0,max:.5,step:.02,hint:'Retain more of Inago’s spread and coalescence while pursuing prey.'},
     {key:'turbulence',label:'Turbulence',min:0,max:2,step:.1,hint:'Strength of local eddies and uneven flanking motion.'},
     {key:'swirl',label:'Circulation',min:.2,max:1.8,step:.1,hint:'How strongly the flock flows around its prey.'},
+    {key:'stride',label:'Stride rhythm',min:.5,max:2,step:.05,hint:'Period of each muscle band’s reach, plant and haul cycle.'},
+    {key:'grip',label:'Grip',min:0,max:1,step:.05,hint:'Ground friction and pinning between contractions. Zero glides like before.'},
   ]},
   {name:'Living boundary',controls:[
     {key:'tension',label:'Surface tension',min:0,max:1,step:.05,hint:'Higher tension smooths local dents and pulls the edge together.'},

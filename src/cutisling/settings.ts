@@ -5,6 +5,8 @@ export const CUTISLING_DEFAULTS={
   freedom:.22,
   turbulence:1,
   swirl:1,
+  stride:1,
+  grip:.85,
   tension:.3,
   viscosity:.35,
   edgeDetail:.75,
