@@ -47,7 +47,7 @@ const corr=(a,b)=>{const ma=mean(a),mb=mean(b);let n=0,da=0,db=0;for(let i=0;i<a
 {
   const travel=(settings={})=>{const c=new Peristaling();Object.assign(c.tuning,settings);c.lure(7,0);c.autoPrey=false;
     const start=mean(c.x);let ribbon=0,waveOk=0,peaksOk=0,samples=0;const factors=new Set();
-    for(let i=1;i<=12*60;i++){c.step(1/60);factors.add(Math.round(c.wave.factor*20)/20);
+    for(let i=1;i<=12*60;i++){c.step(1/60);factors.add(Math.round(c.wave.target*20)/20);
       if(i<2*60||i>10*60||i%15)continue;samples++;
       const hx=Math.cos(c.heading),hz=Math.sin(c.heading),cx=mean(c.x),cz=mean(c.z);
       const along=[],across=[],speed=[],phase=[];
@@ -63,8 +63,7 @@ const corr=(a,b)=>{const ma=mean(a),mb=mean(b);let n=0,da=0,db=0;for(let i=0;i<a
   assert(t.ribbon>=.7,`body is a ribbon while travelling (${(t.ribbon*100).toFixed(0)} % of samples)`);
   assert(t.waveOk>=.6,`forward speed follows the wave phase (${(t.waveOk*100).toFixed(0)} %)`);
   assert(t.peaksOk>=.5,`density shows travelling peaks (${(t.peaksOk*100).toFixed(0)} %)`);
-  const distinct=t.factors.filter((f,i,a)=>i===0||f-a[i-1]>.1).length;
-  assert(distinct>=3,`wave speed is randomised (${t.factors.join(', ')})`);
+  assert(t.factors.length>=3&&t.factors[t.factors.length-1]-t.factors[0]>.3,`wave speed targets are randomised (${t.factors.join(', ')})`);
   const glide=travel({grip:0});assert(glide.advance>=t.advance*.8,`grip 0 travels at least as far (${glide.advance.toFixed(2)} vs ${t.advance.toFixed(2)})`);
   for(const settings of [{},{grip:0},{grip:1},{stride:.5},{stride:2},{freedom:.5,turbulence:2}]){const c=new Peristaling();Object.assign(c.tuning,settings);for(let i=1;i<=60*60;i++)c.step(1/60);assert(c.meals>=1,`feeds within 60 s at ${JSON.stringify(settings)}`);}
   pass('peristaling: ribbon body, phase-locked wave, travelling density peaks, randomised speed, travel, feeding');

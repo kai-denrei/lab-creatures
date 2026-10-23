@@ -31,7 +31,8 @@
     "test:cutisling": "node --experimental-strip-types scripts/verify-cutisling.mjs",
     "test:inago": "node --experimental-strip-types scripts/verify-inago.mjs",
     "test:evasion": "node --experimental-strip-types scripts/verify-evasion.mjs",
-    "test:cutisling-v2": "node --experimental-strip-types scripts/verify-cutisling-v2.mjs"
+    "test:cutisling-v2": "node --experimental-strip-types scripts/verify-cutisling-v2.mjs",
+    "test:peristaling": "node --experimental-strip-types scripts/verify-peristaling.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
