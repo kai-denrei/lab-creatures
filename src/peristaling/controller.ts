@@ -59,7 +59,7 @@ export class Peristaling extends Cutisling{
     const hx=Math.cos(this.heading),hz=Math.sin(this.heading),gain=THRUST*(1+.6*this.wave.burst);
     if(grip<.05||c>0){const power=grip<.05?gain*.4:c*c*gain;ax+=this.thrustX[i]*power;az+=this.thrustZ[i]*power;}
     else{
-      const k=-c,friction=9*grip*k,squeeze=2.5*k*this.across[i];
+      const k=-c,friction=9*grip*k,squeeze=1.4*k*this.across[i];
       ax+=-vx*friction+hz*squeeze;az+=-vz*friction-hx*squeeze;
     }
     return {blend:1,x:ax,z:az};
